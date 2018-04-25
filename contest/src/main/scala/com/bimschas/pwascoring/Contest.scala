@@ -4,17 +4,20 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.Props
 import akka.actor.typed.scaladsl.ActorContext
+
 import akka.cluster.sharding.typed.ClusterShardingSettings
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.cluster.sharding.typed.scaladsl.EntityRef
+
 import akka.persistence.typed.scaladsl.PersistentBehaviors
 import akka.persistence.typed.scaladsl.PersistentBehaviors.CommandHandler
 import akka.persistence.typed.scaladsl.PersistentBehaviors.Effect
+
 import com.bimschas.pwascoring.Heat.HeatCommand
 import com.bimschas.pwascoring.Heat.PassivateHeat
-import com.bimschas.pwascoring.model.HeatContestants
-import com.bimschas.pwascoring.model.HeatId
-import com.bimschas.pwascoring.model.Implicits.HeatIdOps
+import com.bimschas.pwascoring.domain.HeatContestants
+import com.bimschas.pwascoring.domain.HeatId
+import com.bimschas.pwascoring.domain.Implicits.HeatIdOps
 
 object Contest {
 

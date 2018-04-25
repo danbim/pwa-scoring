@@ -1,7 +1,8 @@
-package com.bimschas.pwascoring.model
+package com.bimschas.pwascoring.domain
+
+import com.bimschas.pwascoring.Heat.HeatCommand
 
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
-import com.bimschas.pwascoring.Heat.HeatCommand
 
 object Implicits {
 

@@ -2,16 +2,22 @@ package com.bimschas.pwascoring
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
+
+import akka.cluster.sharding.typed.ClusterShardingSettings
+import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import akka.cluster.sharding.typed.scaladsl.EntityRef
+
 import akka.persistence.typed.scaladsl.PersistentBehaviors
 import akka.persistence.typed.scaladsl.PersistentBehaviors.CommandHandler
 import akka.persistence.typed.scaladsl.PersistentBehaviors.Effect
-import com.bimschas.pwascoring.model.HeatContestants
-import com.bimschas.pwascoring.model.HeatId
-import com.bimschas.pwascoring.model.HeatState
-import com.bimschas.pwascoring.model.JumpScore
-import com.bimschas.pwascoring.model.RiderId
-import com.bimschas.pwascoring.model.RiderScoreSheet
-import com.bimschas.pwascoring.model.WaveScore
+
+import com.bimschas.pwascoring.domain.HeatContestants
+import com.bimschas.pwascoring.domain.HeatId
+import com.bimschas.pwascoring.domain.HeatState
+import com.bimschas.pwascoring.domain.JumpScore
+import com.bimschas.pwascoring.domain.RiderId
+import com.bimschas.pwascoring.domain.ScoreSheet
+import com.bimschas.pwascoring.domain.WaveScore
 
 object Heat {
 
@@ -19,7 +25,7 @@ object Heat {
   sealed trait HeatCommand
   final case class ScoreWave(waveScore: WaveScore, replyTo: ActorRef[WaveScored]) extends HeatCommand
   final case class ScoreJump(jumpScore: JumpScore, replyTo: ActorRef[JumpScored]) extends HeatCommand
-  final case class GetScoreSheets(replyTo: ActorRef[Map[RiderId, RiderScoreSheet]]) extends HeatCommand
+  final case class GetScoreSheets(replyTo: ActorRef[Map[RiderId, ScoreSheet]]) extends HeatCommand
   final case object PassivateHeat extends HeatCommand
 
   ////// command responses

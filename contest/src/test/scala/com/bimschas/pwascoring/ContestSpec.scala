@@ -1,39 +1,43 @@
+package com.bimschas.pwascoring
+
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Props
+import akka.actor.typed.scaladsl.AskPattern._
+import akka.cluster.sharding.typed.scaladsl.EntityRef
 import akka.cluster.typed.ClusterSingleton
 import akka.cluster.typed.ClusterSingletonSettings
 import akka.testkit.typed.scaladsl.ActorTestKit
 import akka.testkit.typed.scaladsl.TestProbe
-import com.bimschas.pwascoring.Contest
+
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.Matchers
+import org.scalatest.OptionValues
+import org.scalatest.WordSpec
+import org.scalatest.concurrent.ScalaFutures
+
 import com.bimschas.pwascoring.Contest.GetHeat
 import com.bimschas.pwascoring.Contest.HeatAlreadyStarted
+import com.bimschas.pwascoring.Contest.HeatIdUnknown
 import com.bimschas.pwascoring.Contest.HeatStarted
 import com.bimschas.pwascoring.Contest.StartHeat
 import com.bimschas.pwascoring.Heat.GetScoreSheets
+import com.bimschas.pwascoring.Heat.HeatCommand
 import com.bimschas.pwascoring.Heat.JumpScored
 import com.bimschas.pwascoring.Heat.PassivateHeat
 import com.bimschas.pwascoring.Heat.ScoreJump
 import com.bimschas.pwascoring.Heat.ScoreWave
 import com.bimschas.pwascoring.Heat.WaveScored
-import com.bimschas.pwascoring.model.BackLoop
-import com.bimschas.pwascoring.model.HeatContestants
-import com.bimschas.pwascoring.model.HeatId
-import com.bimschas.pwascoring.model.JumpScore
-import com.bimschas.pwascoring.model.RiderId
-import com.bimschas.pwascoring.model.WaveScore
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.Matchers
-import org.scalatest.OptionValues
-import org.scalatest.WordSpec
-import org.scalatest.concurrent.ScalaFutures
-import akka.actor.typed.scaladsl.AskPattern._
-import akka.cluster.sharding.typed.scaladsl.EntityRef
-import com.bimschas.pwascoring.Contest.HeatIdUnknown
-import com.bimschas.pwascoring.Heat.HeatCommand
-import com.bimschas.pwascoring.model.RiderScoreSheet
-import com.bimschas.pwascoring.model.Score
+import com.bimschas.pwascoring.domain.BackLoop
+import com.bimschas.pwascoring.domain.HeatContestants
+import com.bimschas.pwascoring.domain.HeatId
+import com.bimschas.pwascoring.domain.JumpScore
+import com.bimschas.pwascoring.domain.RiderId
+import com.bimschas.pwascoring.domain.ScoreSheet
+import com.bimschas.pwascoring.domain.Score
+import com.bimschas.pwascoring.domain.WaveScore
 
 object IdGenerator {
   private val lastId = new AtomicInteger(0)
@@ -126,7 +130,7 @@ class ContestSpec extends WordSpec
                 jumpScoreProbe.expectMessage(JumpScored(score))
             }
 
-            def compareScoreSheets(scoreSheets: Map[RiderId, RiderScoreSheet]) = {
+            def compareScoreSheets(scoreSheets: Map[RiderId, ScoreSheet]) = {
               scoreSheets.get(graham).value.waveScores should contain allElementsOf grahamsWaveScores
               scoreSheets.get(graham).value.jumpScores should contain allElementsOf grahamsJumpScores
             }
