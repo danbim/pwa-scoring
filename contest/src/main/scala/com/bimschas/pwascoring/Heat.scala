@@ -23,26 +23,30 @@ object Heat {
 
   ////// commands
   sealed trait HeatCommand
-  final case class ScoreWave(waveScore: WaveScore, replyTo: ActorRef[WaveScored]) extends HeatCommand
-  final case class ScoreJump(jumpScore: JumpScore, replyTo: ActorRef[JumpScored]) extends HeatCommand
+  final case class ScoreWave(riderId: RiderId, waveScore: WaveScore, replyTo: ActorRef[Either[UnknownRiderId, WaveScored]]) extends HeatCommand
+  final case class ScoreJump(riderId: RiderId, jumpScore: JumpScore, replyTo: ActorRef[Either[UnknownRiderId, JumpScored]]) extends HeatCommand
   final case class GetScoreSheets(replyTo: ActorRef[Map[RiderId, ScoreSheet]]) extends HeatCommand
   final case object PassivateHeat extends HeatCommand
 
   ////// command responses
-  final case class WaveScored(waveScore: WaveScore)
-  final case class JumpScored(waveScore: JumpScore)
+  final case class WaveScored(riderId: RiderId, waveScore: WaveScore)
+  final case class JumpScored(riderId: RiderId, waveScore: JumpScore)
 
   ////// events
   sealed trait HeatEvent
-  final case class WaveScoredEvent(waveScore: WaveScore) extends HeatEvent
-  final case class JumpScoredEvent(jumpScore: JumpScore) extends HeatEvent
+  final case class WaveScoredEvent(riderId: RiderId, waveScore: WaveScore) extends HeatEvent
+  final case class JumpScoredEvent(riderId: RiderId, jumpScore: JumpScore) extends HeatEvent
+
+  ////// errors
+  sealed trait Errors
+  final case class UnknownRiderId(riderId: RiderId)
 
   ////// event handler
   private val heatEventHandler: (HeatState, HeatEvent) => HeatState = {
     case (state, event) =>
       event match {
-        case WaveScoredEvent(waveScore) => state + waveScore
-        case JumpScoredEvent(jumpScore) => state + jumpScore
+        case WaveScoredEvent(riderId, waveScore) => state + (riderId, waveScore)
+        case JumpScoredEvent(riderId, jumpScore) => state + (riderId, jumpScore)
       }
   }
 
@@ -58,13 +62,23 @@ object Heat {
   private val heatCommandHandler: CommandHandler[HeatCommand, HeatEvent, HeatState] = {
     case (_, state, cmd) =>
       cmd match {
-        case ScoreWave(waveScore, replyTo) =>
-          Effect.persist(WaveScoredEvent(waveScore)).andThen { _ =>
-            replyTo ! WaveScored(waveScore)
+        case ScoreWave(riderId, waveScore, replyTo) =>
+          if (state.contestants.riderIds.contains(riderId)) {
+            Effect.persist(WaveScoredEvent(riderId, waveScore)).andThen { _ =>
+              replyTo ! Right(WaveScored(riderId, waveScore))
+            }
+          } else {
+            replyTo ! Left(UnknownRiderId(riderId))
+            Effect.none
           }
-        case ScoreJump(jumpScore, replyTo) =>
-          Effect.persist(JumpScoredEvent(jumpScore)).andThen { _ =>
-            replyTo ! JumpScored(jumpScore)
+        case ScoreJump(riderId, jumpScore, replyTo) =>
+          if (state.contestants.riderIds.contains(riderId)) {
+            Effect.persist(JumpScoredEvent(riderId, jumpScore)).andThen { _ =>
+              replyTo ! Right(JumpScored(riderId, jumpScore))
+            }
+          } else {
+            replyTo ! Left(UnknownRiderId(riderId))
+            Effect.none
           }
         case GetScoreSheets(replyTo) =>
           replyTo ! state.scoreSheets
