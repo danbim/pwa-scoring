@@ -54,30 +54,41 @@ class ScoreSheetSpec extends WordSpecLike with Matchers with PropertyChecks {
   "ScoreSheet" must {
     "calculate effective score (non-empty)" in {
 
-      forAll(heatRulesGen) { (rules: HeatRules) =>
+      case class ScoreSheetInput(
+        heatRules: HeatRules,
+        countingWaveScores: List[WaveScore],
+        countingJumpScores: List[JumpScore],
+        nonCountingWaveScores: List[WaveScore],
+        nonCountingJumpScores: List[JumpScore]
+      )
 
-        val countingWaveScores: List[WaveScore] = List.fill(rules.wavesCounting)(sample(waveScoreGen()))
-        val countingJumpScores: List[JumpScore] = Random.shuffle(JumpType.values.toList)
-          .take(rules.jumpsCounting)
+      val scoreSheetInputGen: Gen[ScoreSheetInput] = for {
+        heatRules <- heatRulesGen
+        countingWaveScores <- Gen.const(List.fill(heatRules.wavesCounting)(sample(waveScoreGen()))) // TODO fixed size? or shortListGen.take(heatRules.countingJumps)
+        countingJumpScores <- Gen.const(Random.shuffle(JumpType.values.toList)  // TODO fixed size? or shortListGen.take(heatRules.countingJumps)
+          .take(heatRules.jumpsCounting)
           .map(jumpType => sample(jumpScoreGen(jumpTypeGen = jumpType)))
-
-        countingJumpScores.map(_.jumpType).toSet should have size countingJumpScores.size // only one scoring jump per jumpType allowed
-
-        val nonCountingWaveScores: List[WaveScore] = {
-          if (rules.wavesCounting > 0) {
-            sample(shortListGen(sample(waveScoreGen(
-              pointsGen = pointsGen(max = countingWaveScores.min.points)
-            ))))
-          } else Nil
-        }
-        val nonCountingJumpScores: List[JumpScore] = {
-          if (rules.jumpsCounting > 0) {
-            sample(shortListGen(sample(jumpScoreGen(
+        )
+        nonCountingWaveScores <-
+          if (heatRules.wavesCounting > 0) {
+            shortListGen(waveScoreGen(pointsGen = pointsGen(max = countingWaveScores.min.points)))
+          } else {
+            Gen.const(Nil)
+          }
+        nonCountingJumpScores <-
+          if (heatRules.jumpsCounting > 0) {
+            shortListGen(jumpScoreGen(
               jumpTypeGen = Gen.oneOf(countingJumpScores.map(_.jumpType)),
               pointsGen = pointsGen(max = countingJumpScores.min.points)
-            ))))
-          } else Nil
-        }
+            ))
+          } else {
+            Gen.const(Nil)
+          }
+      } yield ScoreSheetInput(heatRules, countingWaveScores, countingJumpScores, nonCountingWaveScores, nonCountingJumpScores)
+
+      forAll(scoreSheetInputGen) { case ScoreSheetInput(heatRules, countingWaveScores, countingJumpScores, nonCountingWaveScores, nonCountingJumpScores) =>
+
+        countingJumpScores.map(_.jumpType).toSet should have size countingJumpScores.size // only one scoring jump per jumpType allowed
 
         if (nonCountingWaveScores.nonEmpty) nonCountingWaveScores.max should be <= countingWaveScores.min
         if (nonCountingJumpScores.nonEmpty) nonCountingJumpScores.max should be <= countingJumpScores.min
@@ -90,13 +101,13 @@ class ScoreSheetSpec extends WordSpecLike with Matchers with PropertyChecks {
 
         val scoreSheet = ScoreSheet(waveScores, jumpScores)
 
-        scoreSheet.countingJumpScores(rules) should contain theSameElementsAs countingJumpScores
-        scoreSheet.totalJumpScore(rules).value shouldBe countingJumpPoints
+        scoreSheet.countingJumpScores(heatRules) should contain theSameElementsAs countingJumpScores
+        scoreSheet.totalJumpScore(heatRules).value shouldBe countingJumpPoints
 
-        scoreSheet.countingWaveScores(rules) should contain theSameElementsAs countingWaveScores
-        scoreSheet.totalWaveScore(rules).value shouldBe countingWavePoints
+        scoreSheet.countingWaveScores(heatRules) should contain theSameElementsAs countingWaveScores
+        scoreSheet.totalWaveScore(heatRules).value shouldBe countingWavePoints
 
-        scoreSheet.totalScore(rules).value shouldBe countingWavePoints + countingJumpPoints
+        scoreSheet.totalScore(heatRules).value shouldBe countingWavePoints + countingJumpPoints
       }
     }
   }

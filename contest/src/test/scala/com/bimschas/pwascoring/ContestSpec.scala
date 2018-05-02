@@ -37,8 +37,6 @@ import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheet
 import com.bimschas.pwascoring.domain.Score
 import com.bimschas.pwascoring.domain.WaveScore
-import com.bimschas.pwascoring.domain.WaveScore
-import com.bimschas.pwascoring.domain.WaveScore
 
 object IdGenerator {
   private val lastId = new AtomicInteger(0)
