@@ -3,7 +3,7 @@ import mill._
 import mill.scalalib._
 
 object Settings {
-  val scalaVersion = "2.12.4"
+  val scalaVersion = "2.12.6"
   val akkaVersion = "2.5.11"
 }
 
