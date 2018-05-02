@@ -10,12 +10,6 @@ import akka.cluster.typed.ClusterSingleton
 import akka.cluster.typed.ClusterSingletonSettings
 import akka.testkit.typed.scaladsl.ActorTestKit
 import akka.testkit.typed.scaladsl.TestProbe
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.Matchers
-import org.scalatest.OptionValues
-import org.scalatest.WordSpec
-import org.scalatest.concurrent.ScalaFutures
 import com.bimschas.pwascoring.Contest.GetHeat
 import com.bimschas.pwascoring.Contest.HeatAlreadyStarted
 import com.bimschas.pwascoring.Contest.HeatIdUnknown
@@ -34,9 +28,14 @@ import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.RiderId
-import com.bimschas.pwascoring.domain.ScoreSheet
 import com.bimschas.pwascoring.domain.Score
+import com.bimschas.pwascoring.domain.ScoreSheet
 import com.bimschas.pwascoring.domain.WaveScore
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Matchers
+import org.scalatest.OptionValues
+import org.scalatest.WordSpec
+import org.scalatest.concurrent.ScalaFutures
 
 object IdGenerator {
   private val lastId = new AtomicInteger(0)

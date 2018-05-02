@@ -23,7 +23,7 @@ object app extends SbtModule {
   override def scalaVersion = Settings.scalaVersion
 }
 
-object contest extends SbtModule {
+object contest extends ScalaModule {
   override def moduleDeps = Seq(domain)
   override def scalaVersion = Settings.scalaVersion
   override def ivyDeps = Agg(
