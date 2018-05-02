@@ -18,7 +18,7 @@ object domain extends ScalaModule {
   }
 }
 
-object app extends SbtModule {
+object app extends ScalaModule {
   override def moduleDeps = Seq(domain)
   override def scalaVersion = Settings.scalaVersion
 }
