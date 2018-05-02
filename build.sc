@@ -7,7 +7,7 @@ object Settings {
   val akkaVersion = "2.5.11"
 }
 
-object domain extends SbtModule {
+object domain extends ScalaModule {
   override def scalaVersion = Settings.scalaVersion
   object test extends Tests {
     override def testFrameworks = Seq("org.scalatest.tools.Framework")

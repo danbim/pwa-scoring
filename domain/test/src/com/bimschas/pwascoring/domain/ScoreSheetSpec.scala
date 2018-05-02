@@ -1,12 +1,9 @@
 package com.bimschas.pwascoring.domain
 
+import org.scalacheck.Gen
 import org.scalatest.Matchers
-import org.scalatest.OptionValues
 import org.scalatest.WordSpecLike
 import org.scalatest.prop.PropertyChecks
-import org.scalacheck.Properties
-import org.scalacheck.Prop.forAll
-import org.scalacheck.Gen
 
 import scala.collection.immutable.List
 import scala.language.implicitConversions
