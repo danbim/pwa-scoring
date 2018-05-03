@@ -1,6 +1,7 @@
 # TODO
 
-[ ] Fix IntelliJ paths
+[ ] Bug report for IntelliJ generation issues
+[x] Fix IntelliJ paths
 [ ] Logging as wrapping function
 [ ] Separate command and event handling from Actor implementation
 [ ] Support one to four person heats
