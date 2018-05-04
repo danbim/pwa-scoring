@@ -99,6 +99,7 @@ object ContestActor {
           Effect.none
 
         case PassivateContest =>
+          println(s"===> PassivateContest")
           Effect.stop
       }
   }

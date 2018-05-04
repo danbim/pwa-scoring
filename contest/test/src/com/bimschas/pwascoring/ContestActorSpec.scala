@@ -57,7 +57,7 @@ class ContestActorSpec extends WordSpec
     protected val singletonManager = ClusterSingleton(system)
     protected val contestActor = singletonManager.spawn(
       behavior = ContestActor.behavior,
-      "Contest",
+      "ContestActor",
       Props.empty,
       ClusterSingletonSettings(system),
       ContestActor.PassivateContest

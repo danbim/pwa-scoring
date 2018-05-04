@@ -27,7 +27,7 @@ object HeatActor {
   ////// responses
   sealed trait HeatResponse
   final case class WaveScored(riderId: RiderId, waveScore: WaveScore) extends HeatResponse
-  final case class JumpScored(riderId: RiderId, waveScore: JumpScore) extends HeatResponse
+  final case class JumpScored(riderId: RiderId, jumpScore: JumpScore) extends HeatResponse
 
   def heatBehavior(entityId: String, heatId: HeatId, contestants: HeatContestants): Behavior[HeatCommand] =
     PersistentBehaviors.immutable[HeatCommand, HeatEvent, Heat](
@@ -41,6 +41,7 @@ object HeatActor {
     case (_, state, cmd) =>
       cmd match {
         case ScoreWave(riderId, waveScore, replyTo) =>
+          println(s"heatCommandHandler.ScoreWave")
           state.scoreWave(riderId, waveScore) match {
             case Left(unknownRiderId) =>
               Effect.none.andThen(_ => replyTo ! Left(unknownRiderId))
@@ -48,6 +49,7 @@ object HeatActor {
               Effect.persist(waveScoredEvent).andThen(_ => replyTo ! Right(WaveScored(riderId, waveScore)))
           }
         case ScoreJump(riderId, jumpScore, replyTo) =>
+          println(s"heatCommandHandler.ScoreJump")
           state.scoreJump(riderId, jumpScore) match {
             case Left(unknownRiderId) =>
               Effect.none.andThen(_ => replyTo ! Left(unknownRiderId))
@@ -55,9 +57,11 @@ object HeatActor {
               Effect.persist(jumpScoredEvent).andThen(_ => replyTo ! Right(JumpScored(riderId, jumpScore)))
           }
         case GetScoreSheets(replyTo) =>
+          println(s"heatCommandHandler.GetScoreSheets")
           replyTo ! state.scoreSheets
           Effect.none
         case PassivateHeat =>
+          println(s"heatCommandHandler.PassiveHeat")
           Effect.stop
       }
   }

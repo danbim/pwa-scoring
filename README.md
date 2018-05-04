@@ -1,5 +1,6 @@
 # TODO
 
+[ ] Dynamically set application.conf in Actor-based specs
 [ ] Bug report for IntelliJ generation issues
 [x] Fix IntelliJ paths
 [ ] Logging as wrapping function
