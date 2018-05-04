@@ -1,6 +1,6 @@
 package com.bimschas.pwascoring.domain
 
-import com.bimschas.pwascoring.Heat.HeatCommand
+import com.bimschas.pwascoring.HeatActor.HeatCommand
 
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 

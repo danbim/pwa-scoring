@@ -10,20 +10,20 @@ import akka.cluster.typed.ClusterSingleton
 import akka.cluster.typed.ClusterSingletonSettings
 import akka.testkit.typed.scaladsl.ActorTestKit
 import akka.testkit.typed.scaladsl.TestProbe
-import com.bimschas.pwascoring.Contest.GetHeat
-import com.bimschas.pwascoring.Contest.HeatAlreadyStarted
-import com.bimschas.pwascoring.Contest.HeatIdUnknown
-import com.bimschas.pwascoring.Contest.HeatStarted
-import com.bimschas.pwascoring.Contest.StartHeat
-import com.bimschas.pwascoring.Heat.GetScoreSheets
-import com.bimschas.pwascoring.Heat.HeatCommand
-import com.bimschas.pwascoring.Heat.JumpScored
-import com.bimschas.pwascoring.Heat.PassivateHeat
-import com.bimschas.pwascoring.Heat.ScoreJump
-import com.bimschas.pwascoring.Heat.ScoreWave
-import com.bimschas.pwascoring.Heat.UnknownRiderId
-import com.bimschas.pwascoring.Heat.WaveScored
+import com.bimschas.pwascoring.ContestActor.GetHeat
+import com.bimschas.pwascoring.ContestActor.HeatAlreadyStarted
+import com.bimschas.pwascoring.ContestActor.HeatIdUnknown
+import com.bimschas.pwascoring.ContestActor.HeatStarted
+import com.bimschas.pwascoring.ContestActor.StartHeat
+import com.bimschas.pwascoring.HeatActor.GetScoreSheets
+import com.bimschas.pwascoring.HeatActor.HeatCommand
+import com.bimschas.pwascoring.HeatActor.JumpScored
+import com.bimschas.pwascoring.HeatActor.PassivateHeat
+import com.bimschas.pwascoring.HeatActor.ScoreJump
+import com.bimschas.pwascoring.HeatActor.ScoreWave
+import com.bimschas.pwascoring.HeatActor.WaveScored
 import com.bimschas.pwascoring.domain.BackLoop
+import com.bimschas.pwascoring.domain.Heat.UnknownRiderId
 import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
@@ -43,7 +43,7 @@ object IdGenerator {
 }
 
 //noinspection TypeAnnotation
-class ContestSpec extends WordSpec
+class ContestActorSpec extends WordSpec
   with ActorTestKit
   with BeforeAndAfterAll
   with ScalaFutures
@@ -56,11 +56,11 @@ class ContestSpec extends WordSpec
   private abstract class ContestScenario {
     protected val singletonManager = ClusterSingleton(system)
     protected val contestActor = singletonManager.spawn(
-      behavior = Contest.behavior,
+      behavior = ContestActor.behavior,
       "Contest",
       Props.empty,
       ClusterSingletonSettings(system),
-      Contest.PassivateContest
+      ContestActor.PassivateContest
     )
     protected val heatId = {
       val uniquePersistenceId = IdGenerator.nextId()

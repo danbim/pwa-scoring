@@ -13,13 +13,13 @@ import akka.persistence.typed.scaladsl.PersistentBehaviors
 import akka.persistence.typed.scaladsl.PersistentBehaviors.CommandHandler
 import akka.persistence.typed.scaladsl.PersistentBehaviors.Effect
 
-import com.bimschas.pwascoring.Heat.HeatCommand
-import com.bimschas.pwascoring.Heat.PassivateHeat
+import com.bimschas.pwascoring.HeatActor.HeatCommand
+import com.bimschas.pwascoring.HeatActor.PassivateHeat
 import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.Implicits.HeatIdOps
 
-object Contest {
+object ContestActor {
 
   ////// contest commands and responses
   sealed trait ContestCommand
@@ -64,7 +64,7 @@ object Contest {
 
   private def spawnHeatEntity(ctx: ActorContext[_], heatId: HeatId, contestants: HeatContestants) =
     sharding(ctx).spawn(
-      behavior = entityId => Heat.heatBehavior(entityId, heatId, contestants),
+      behavior = entityId => HeatActor.heatBehavior(entityId, heatId, contestants),
       props = Props.empty,
       typeKey = heatId.entityTypeKey,
       settings = ClusterShardingSettings(ctx.system),
@@ -105,7 +105,7 @@ object Contest {
 
   val behavior: Behavior[ContestCommand] =
     PersistentBehaviors.immutable[ContestCommand, ContestEvent, ContestState](
-      persistenceId = Contest.PersistenceId,
+      persistenceId = ContestActor.PersistenceId,
       initialState = ContestState.empty,
       commandHandler = contestCommandHandler,
       eventHandler = contestEventHandler
