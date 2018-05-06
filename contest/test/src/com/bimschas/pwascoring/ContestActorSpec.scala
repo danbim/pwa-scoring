@@ -11,8 +11,6 @@ import akka.cluster.typed.ClusterSingletonSettings
 import akka.testkit.typed.scaladsl.ActorTestKit
 import akka.testkit.typed.scaladsl.TestProbe
 import com.bimschas.pwascoring.ContestActor.GetHeat
-import com.bimschas.pwascoring.ContestActor.HeatAlreadyStarted
-import com.bimschas.pwascoring.ContestActor.HeatIdUnknown
 import com.bimschas.pwascoring.ContestActor.HeatStarted
 import com.bimschas.pwascoring.ContestActor.StartHeat
 import com.bimschas.pwascoring.HeatActor.GetScoreSheets
@@ -23,6 +21,8 @@ import com.bimschas.pwascoring.HeatActor.ScoreJump
 import com.bimschas.pwascoring.HeatActor.ScoreWave
 import com.bimschas.pwascoring.HeatActor.WaveScored
 import com.bimschas.pwascoring.domain.BackLoop
+import com.bimschas.pwascoring.domain.Contest.HeatAlreadyStarted
+import com.bimschas.pwascoring.domain.Contest.HeatIdUnknown
 import com.bimschas.pwascoring.domain.Heat.UnknownRiderId
 import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatId

@@ -17,14 +17,12 @@ import com.bimschas.pwascoring.domain.WaveScore
 
 object HeatActor {
 
-  ////// commands
   sealed trait HeatCommand
   final case class ScoreWave(riderId: RiderId, waveScore: WaveScore, replyTo: ActorRef[Either[UnknownRiderId, WaveScored]]) extends HeatCommand
   final case class ScoreJump(riderId: RiderId, jumpScore: JumpScore, replyTo: ActorRef[Either[UnknownRiderId, JumpScored]]) extends HeatCommand
   final case class GetScoreSheets(replyTo: ActorRef[Map[RiderId, ScoreSheet]]) extends HeatCommand
   final case object PassivateHeat extends HeatCommand
 
-  ////// responses
   sealed trait HeatResponse
   final case class WaveScored(riderId: RiderId, waveScore: WaveScore) extends HeatResponse
   final case class JumpScored(riderId: RiderId, jumpScore: JumpScore) extends HeatResponse
@@ -37,31 +35,31 @@ object HeatActor {
       eventHandler = Heat.handleEvent
     )
 
-  private val heatCommandHandler: CommandHandler[HeatCommand, HeatEvent, Heat] = {
+  private lazy val heatCommandHandler: CommandHandler[HeatCommand, HeatEvent, Heat] = {
     case (_, state, cmd) =>
       cmd match {
+
         case ScoreWave(riderId, waveScore, replyTo) =>
-          println(s"heatCommandHandler.ScoreWave")
           state.scoreWave(riderId, waveScore) match {
             case Left(unknownRiderId) =>
               Effect.none.andThen(_ => replyTo ! Left(unknownRiderId))
             case Right(waveScoredEvent) =>
               Effect.persist(waveScoredEvent).andThen(_ => replyTo ! Right(WaveScored(riderId, waveScore)))
           }
+
         case ScoreJump(riderId, jumpScore, replyTo) =>
-          println(s"heatCommandHandler.ScoreJump")
           state.scoreJump(riderId, jumpScore) match {
             case Left(unknownRiderId) =>
               Effect.none.andThen(_ => replyTo ! Left(unknownRiderId))
             case Right(jumpScoredEvent) =>
               Effect.persist(jumpScoredEvent).andThen(_ => replyTo ! Right(JumpScored(riderId, jumpScore)))
           }
+
         case GetScoreSheets(replyTo) =>
-          println(s"heatCommandHandler.GetScoreSheets")
           replyTo ! state.scoreSheets
           Effect.none
+
         case PassivateHeat =>
-          println(s"heatCommandHandler.PassiveHeat")
           Effect.stop
       }
   }
