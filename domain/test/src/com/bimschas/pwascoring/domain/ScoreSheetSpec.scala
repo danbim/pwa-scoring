@@ -14,41 +14,41 @@ class ScoreSheetSpec extends WordSpecLike with Matchers with PropertyChecks with
   implicit val waveOrdering: Ordering[WaveScore] = WaveScore.AscendingOrdering
   implicit val jumpOrdering: Ordering[JumpScore] = JumpScore.AscendingOrdering
 
+  case class ScoreSheetInput(
+    heatRules: HeatRules,
+    countingWaveScores: List[WaveScore],
+    countingJumpScores: List[JumpScore],
+    nonCountingWaveScores: List[WaveScore],
+    nonCountingJumpScores: List[JumpScore]
+  )
+
+  val scoreSheetInputGen: Gen[ScoreSheetInput] = for {
+    heatRules <- heatRulesGen
+    countingWaveScores <- fixedSizeListGen(heatRules.wavesCounting, waveScoreGen())
+    countingJumpScores <- Gen.const(
+      Random.shuffle(JumpType.values.toList)
+        .take(heatRules.jumpsCounting)
+        .map(jumpType => sample(jumpScoreGen(jumpTypeGen = jumpType)))
+    )
+    nonCountingWaveScores <-
+      if (countingWaveScores.nonEmpty) {
+        shortListGen(waveScoreGen(pointsGen = pointsGen(max = countingWaveScores.min.points)))
+      } else {
+        Gen.const(Nil)
+      }
+    nonCountingJumpScores <-
+      if (countingJumpScores.nonEmpty) {
+        shortListGen(jumpScoreGen(
+          jumpTypeGen = Gen.oneOf(countingJumpScores.map(_.jumpType)),
+          pointsGen = pointsGen(max = countingJumpScores.min.points)
+        ))
+      } else {
+        Gen.const(Nil)
+      }
+  } yield ScoreSheetInput(heatRules, countingWaveScores, countingJumpScores, nonCountingWaveScores, nonCountingJumpScores)
+
   "ScoreSheet" must {
     "calculate effective score (non-empty)" in {
-
-      case class ScoreSheetInput(
-        heatRules: HeatRules,
-        countingWaveScores: List[WaveScore],
-        countingJumpScores: List[JumpScore],
-        nonCountingWaveScores: List[WaveScore],
-        nonCountingJumpScores: List[JumpScore]
-      )
-
-      val scoreSheetInputGen: Gen[ScoreSheetInput] = for {
-        heatRules <- heatRulesGen
-        countingWaveScores <- fixedSizeListGen(heatRules.wavesCounting, waveScoreGen())
-        countingJumpScores <- Gen.const(
-          Random.shuffle(JumpType.values.toList)
-            .take(heatRules.jumpsCounting)
-            .map(jumpType => sample(jumpScoreGen(jumpTypeGen = jumpType)))
-        )
-        nonCountingWaveScores <-
-          if (countingWaveScores.nonEmpty) {
-            shortListGen(waveScoreGen(pointsGen = pointsGen(max = countingWaveScores.min.points)))
-          } else {
-            Gen.const(Nil)
-          }
-        nonCountingJumpScores <-
-          if (countingJumpScores.nonEmpty) {
-            shortListGen(jumpScoreGen(
-              jumpTypeGen = Gen.oneOf(countingJumpScores.map(_.jumpType)),
-              pointsGen = pointsGen(max = countingJumpScores.min.points)
-            ))
-          } else {
-            Gen.const(Nil)
-          }
-      } yield ScoreSheetInput(heatRules, countingWaveScores, countingJumpScores, nonCountingWaveScores, nonCountingJumpScores)
 
       forAll(scoreSheetInputGen) { case ScoreSheetInput(heatRules, countingWaveScores, countingJumpScores, nonCountingWaveScores, nonCountingJumpScores) =>
 
