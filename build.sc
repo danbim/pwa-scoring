@@ -12,7 +12,7 @@ object domain extends ScalaModule {
   object test extends Tests {
     override def testFrameworks = Seq("org.scalatest.tools.Framework")
     override def ivyDeps = Agg(
-      ivy"org.scalatest::scalatest:3.0.1",
+      ivy"org.scalatest::scalatest:3.0.5",
 			ivy"org.scalacheck::scalacheck:1.14.0"
     )
   }
@@ -35,7 +35,7 @@ object contest extends ScalaModule {
     override def testFrameworks = Seq("org.scalatest.tools.Framework")
     override def ivyDeps = Agg(
       ivy"com.typesafe.akka::akka-testkit-typed:${Settings.akkaVersion}",
-      ivy"org.scalatest::scalatest:3.0.1",
+      ivy"org.scalatest::scalatest:3.0.5",
 			ivy"org.scalacheck::scalacheck:1.14.0",
       ivy"org.fusesource.leveldbjni:leveldbjni-all:1.8"
     )
