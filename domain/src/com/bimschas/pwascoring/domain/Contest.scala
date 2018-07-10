@@ -21,9 +21,8 @@ final case class Contest(heats: Set[HeatId]) {
 
 object Contest {
 
-  sealed trait Errors
-  final case class HeatAlreadyStarted(heatId: HeatId) extends Errors
-  final case class HeatIdUnknown(heatId: HeatId) extends Errors
+  final case class HeatAlreadyStarted(heatId: HeatId)
+  final case class HeatIdUnknown(heatId: HeatId)
 
   def handleEvent(contest: Contest, contestEvent: ContestEvent): Contest =
     contest.handleEvent(contestEvent)

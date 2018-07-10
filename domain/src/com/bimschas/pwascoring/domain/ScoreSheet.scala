@@ -15,13 +15,12 @@ final case class ScoreSheet(waveScores: List[WaveScore], jumpScores: List[JumpSc
 
   def countingJumpScores(rules: HeatRules): List[JumpScore] = {
     jumpScores.sorted(Score.DescendingOrdering).foldLeft(List.empty[JumpScore]) {
+      case (countingJumpScores, _) if countingJumpScores.size >= rules.jumpsCounting =>
+        countingJumpScores
+      case (countingJumpScores, jumpScore) if countingJumpScores.map(_.jumpType).contains(jumpScore.jumpType) =>
+        countingJumpScores
       case (countingJumpScores, jumpScore) =>
-        if (countingJumpScores.size >= rules.jumpsCounting)
-          countingJumpScores
-        else if (countingJumpScores.map(_.jumpType).contains(jumpScore.jumpType))
-          countingJumpScores
-        else
-          countingJumpScores ++ List(jumpScore)
+        countingJumpScores ++ List(jumpScore)
     }
   }
 
