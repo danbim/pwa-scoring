@@ -24,15 +24,9 @@ import com.bimschas.pwascoring.domain.Implicits.HeatIdOps
 object ContestActor {
 
   sealed trait ContestCommand
-  final case class StartHeat(
-    heatId: HeatId,
-    contestants: HeatContestants,
-    replyTo: ActorRef[Either[HeatAlreadyStarted, HeatStarted]]
-  ) extends ContestCommand
-  final case class GetHeat(
-    heatId: HeatId,
-    replyTo: ActorRef[Either[HeatIdUnknown, EntityRef[HeatCommand]]]
-  ) extends ContestCommand
+  final case class StartHeat(heatId: HeatId, contestants: HeatContestants, replyTo: ActorRef[Either[HeatAlreadyStarted, HeatStarted]]) extends ContestCommand
+  final case class GetHeats(replyTo: ActorRef[Set[HeatId]]) extends ContestCommand
+  final case class GetHeat(heatId: HeatId, replyTo: ActorRef[Either[HeatIdUnknown, EntityRef[HeatCommand]]]) extends ContestCommand
   final case object PassivateContest extends ContestCommand
 
   sealed trait ContestResponse
@@ -63,6 +57,10 @@ object ContestActor {
                 replyTo ! Right(HeatStarted(heatEntityRef(ctx, heatId)))
               }
           }
+
+        case GetHeats(sender) =>
+          sender ! state.heats
+          Effect.none
 
         case GetHeat(heatId, sender) =>
           val response =

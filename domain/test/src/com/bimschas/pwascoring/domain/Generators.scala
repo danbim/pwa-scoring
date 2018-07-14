@@ -26,6 +26,12 @@ trait Generators {
   def nonEmptyShortListGen[A](g: Gen[A]): Gen[List[A]] =
     nonEmptyListGen(10, g)
 
+  val heatIdGen: Gen[HeatId] =
+    for {
+      number <- Gen.delay(IdCounter.next())
+      classifier <- Gen.some(Gen.oneOf("a", "b"))
+    } yield HeatId(number, classifier)
+
   val riderIdGen: Gen[RiderId] =
     RiderId("G-123")
 

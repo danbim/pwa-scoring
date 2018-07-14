@@ -21,6 +21,7 @@ object HeatActor {
   final case class ScoreWave(riderId: RiderId, waveScore: WaveScore, replyTo: ActorRef[Either[UnknownRiderId, WaveScored]]) extends HeatCommand
   final case class ScoreJump(riderId: RiderId, jumpScore: JumpScore, replyTo: ActorRef[Either[UnknownRiderId, JumpScored]]) extends HeatCommand
   final case class GetScoreSheets(replyTo: ActorRef[Map[RiderId, ScoreSheet]]) extends HeatCommand
+  final case class GetContestants(replyTo: ActorRef[HeatContestants]) extends HeatCommand
   final case object PassivateHeat extends HeatCommand
 
   sealed trait HeatResponse
@@ -57,6 +58,10 @@ object HeatActor {
 
         case GetScoreSheets(replyTo) =>
           replyTo ! state.scoreSheets
+          Effect.none
+
+        case GetContestants(replyTo) =>
+          replyTo ! state.contestants
           Effect.none
 
         case PassivateHeat =>

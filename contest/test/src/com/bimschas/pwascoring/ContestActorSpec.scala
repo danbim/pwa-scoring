@@ -64,7 +64,7 @@ class ContestActorSpec extends WordSpec
     )
     protected val heatId = {
       val uniquePersistenceId = IdGenerator.nextId()
-      HeatId(uniquePersistenceId, Some('a'))
+      HeatId.parse(s"$uniquePersistenceId-a")
     }
 
     protected val graham = RiderId(sailNr = "USA-1")
