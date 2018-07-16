@@ -13,6 +13,7 @@ import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheet
+import com.bimschas.pwascoring.domain.ScoreSheets
 import com.bimschas.pwascoring.domain.WaveScore
 
 object HeatActor {
@@ -20,7 +21,7 @@ object HeatActor {
   sealed trait HeatCommand
   final case class ScoreWave(riderId: RiderId, waveScore: WaveScore, replyTo: ActorRef[Either[UnknownRiderId, WaveScored]]) extends HeatCommand
   final case class ScoreJump(riderId: RiderId, jumpScore: JumpScore, replyTo: ActorRef[Either[UnknownRiderId, JumpScored]]) extends HeatCommand
-  final case class GetScoreSheets(replyTo: ActorRef[Map[RiderId, ScoreSheet]]) extends HeatCommand
+  final case class GetScoreSheets(replyTo: ActorRef[ScoreSheets]) extends HeatCommand
   final case class GetContestants(replyTo: ActorRef[HeatContestants]) extends HeatCommand
   final case object PassivateHeat extends HeatCommand
 

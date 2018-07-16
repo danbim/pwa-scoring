@@ -64,13 +64,13 @@ class ContestActorSpec extends WordSpec
     )
     protected val heatId = {
       val uniquePersistenceId = IdGenerator.nextId()
-      HeatId.parse(s"$uniquePersistenceId-a")
+      HeatId.parse(s"$uniquePersistenceId-a").get
     }
 
     protected val graham = RiderId(sailNr = "USA-1")
     protected val julian = RiderId(sailNr = "G-901")
 
-    protected val contestants = HeatContestants(graham, julian)
+    protected val contestants = HeatContestants(List(graham, julian))
     protected val probe = TestProbe[Either[HeatAlreadyStarted, HeatStarted]]()
   }
 

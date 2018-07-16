@@ -18,7 +18,7 @@ object JumpScore {
   val AscendingOrdering: Ordering[JumpScore] = Ordering.by[JumpScore, Points](_.points)(Points.AscendingOrdering)
   val DescendingOrdering: Ordering[JumpScore] = AscendingOrdering.reverse
 
-  def apply(jumpType: JumpType, value: Double): JumpScore = JumpScore(jumpType, Points(value))
+  def fromDouble(jumpType: JumpType, value: Double): JumpScore = JumpScore(jumpType, Points(value))
 }
 
 object WaveScore {
@@ -26,5 +26,5 @@ object WaveScore {
   val AscendingOrdering: Ordering[WaveScore] = Ordering.by[WaveScore, Points](_.points)(Points.AscendingOrdering)
   val DescendingOrdering: Ordering[WaveScore] = AscendingOrdering.reverse
 
-  def apply(value: Double): WaveScore = WaveScore(Points(value))
+  def fromDouble(value: Double): WaveScore = WaveScore(Points(value))
 }

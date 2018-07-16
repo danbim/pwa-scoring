@@ -2,7 +2,7 @@ package com.bimschas.pwascoring.domain
 
 import com.bimschas.pwascoring.domain.Heat.UnknownRiderId
 
-final case class Heat(contestants: HeatContestants, scoreSheets: Map[RiderId, ScoreSheet]) {
+final case class Heat(contestants: HeatContestants, scoreSheets: ScoreSheets) {
 
   def scoreJump(riderId: RiderId, jumpScore: JumpScore): Either[UnknownRiderId, JumpScoredEvent] = {
     if (contestants.riderIds.contains(riderId))
@@ -26,11 +26,11 @@ final case class Heat(contestants: HeatContestants, scoreSheets: Map[RiderId, Sc
   }
 
   private def +(riderId: RiderId, waveScore: WaveScore): Heat = {
-    copy(scoreSheets = scoreSheets + (riderId -> (scoreSheets.getOrElse(riderId, ScoreSheet.empty) + waveScore)))
+    copy(scoreSheets = scoreSheets.score(riderId, waveScore))
   }
 
   private def +(riderId: RiderId, jumpScore: JumpScore): Heat = {
-    copy(scoreSheets = scoreSheets + (riderId -> (scoreSheets.getOrElse(riderId, ScoreSheet.empty) + jumpScore)))
+    copy(scoreSheets = scoreSheets.score(riderId, jumpScore))
   }
 }
 
@@ -43,5 +43,5 @@ object Heat {
     heat.handleEvent(event)
 
   def empty(contestants: HeatContestants): Heat =
-    Heat(contestants, contestants.riderIds.map(_ -> ScoreSheet.empty).toMap)
+    Heat(contestants, ScoreSheets(contestants.riderIds.map(_ -> ScoreSheet.empty).toMap))
 }

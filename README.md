@@ -2,6 +2,7 @@
 
 ## Next Stuff
 [ ] REST interface for submitting scores
+[ ] UUID for at-least-once-delivery
 [ ] Main method starting cluster, actors and REST interface
 [ ] Command line client to score jumps and waves
 
