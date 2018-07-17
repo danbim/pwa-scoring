@@ -16,6 +16,7 @@ Technologies used include:
   * [Akka Typed Persistence](https://doc.akka.io/docs/akka/current/typed/persistence.html)
 * [Akka HTTP](https://doc.akka.io/docs/akka/current/persistence.html?language=scala)
 * [Spray JSON](https://github.com/spray/spray-json)
+* [ScalaCheck](https://github.com/scalacheck/scalacheck) for Property-based testing
 * [Mill Build Tool](https://github.com/lihaoyi/mill)
 
 ## Next Stuff
@@ -50,5 +51,7 @@ Technologies used include:
   * [inoio](https://inoio.de)-internal knowledge transfer
 * Event Sourcing
   * [Softwerkskammer Lübeck Meetup 08/2018](https://www.meetup.com/Softwerkskammer-Luebeck/events/gjsxslyxlbdb/)
+* Property-based Testing with ScalaCheck
+  * Softwerkskammer Lübeck Meetup
 * Akka Typed, Typed Cluster Sharding and Typed Persistence
 * Akka HTTP Basics, SSE / WebSockets
