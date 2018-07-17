@@ -1,7 +1,6 @@
 package com.bimschas.pwascoring.rest.json
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
@@ -33,14 +32,11 @@ trait ContestJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
       JsString(obj.toString)
   }
 
-  implicit val heatIdUnmarshaller: FromEntityUnmarshaller[HeatId] =
-    sprayJsonUnmarshallerConverter(HeatIdFormat)
+  implicit val heatIdListFormat: RootJsonFormat[List[HeatId]] =
+    listFormat(HeatIdFormat)
 
-  implicit val heatIdListUnmarshaller: FromEntityUnmarshaller[List[HeatId]] =
-    sprayJsonUnmarshallerConverter(listFormat(HeatIdFormat))
-
-  implicit val heatIdSetUnmarshaller: FromEntityUnmarshaller[Set[HeatId]] =
-    sprayJsonUnmarshallerConverter(immSetFormat(HeatIdFormat))
+  implicit val heatIdSetFormat: RootJsonFormat[Set[HeatId]] =
+    immSetFormat(HeatIdFormat)
 
   implicit val pointsFormat: RootJsonFormat[Points] = new RootJsonFormat[Points] {
     override def write(obj: Points): JsValue = JsNumber(obj.value)
@@ -64,13 +60,7 @@ trait ContestJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   }
 
   implicit val jumpScoreFormat: RootJsonFormat[JumpScore] =
-    jsonFormat2(JumpScore.fromDouble)
-
-  implicit val waveScoreUnmarshaller: FromEntityUnmarshaller[WaveScore] =
-    sprayJsonUnmarshallerConverter(waveScoreFormat)
-
-  implicit val jumpScoreUnmarshaller: FromEntityUnmarshaller[JumpScore] =
-    sprayJsonUnmarshallerConverter(jumpScoreFormat)
+    jsonFormat2(JumpScore.apply)
 
   implicit val riderIdFormat: RootJsonFormat[RiderId] = new RootJsonFormat[RiderId] {
     override def write(obj: RiderId): JsValue = JsString(obj.sailNr)
@@ -80,10 +70,10 @@ trait ContestJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
     }
   }
 
-  implicit val riderIdListUnmarshaller: FromEntityUnmarshaller[List[RiderId]] =
-    sprayJsonUnmarshallerConverter(listFormat(riderIdFormat))
+  implicit val riderIdList: RootJsonFormat[List[RiderId]] =
+    listFormat(riderIdFormat)
 
-  implicit val heatContestantsUnmarshaller: FromEntityUnmarshaller[HeatContestants] =
+  implicit val heatContestants: RootJsonFormat[HeatContestants] =
     jsonFormat1(HeatContestants.apply)
 
   implicit val scoreSheetFormat: RootJsonFormat[ScoreSheet] =

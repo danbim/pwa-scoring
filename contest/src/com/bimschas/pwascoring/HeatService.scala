@@ -6,12 +6,14 @@ import akka.util.Timeout
 import com.bimschas.pwascoring.HeatActor.GetContestants
 import com.bimschas.pwascoring.HeatActor.GetScoreSheets
 import com.bimschas.pwascoring.HeatActor.HeatCommand
+import com.bimschas.pwascoring.HeatActor.JumpScored
+import com.bimschas.pwascoring.HeatActor.ScoreJump
 import com.bimschas.pwascoring.HeatActor.ScoreWave
 import com.bimschas.pwascoring.HeatActor.WaveScored
 import com.bimschas.pwascoring.domain.Heat.UnknownRiderId
 import com.bimschas.pwascoring.domain.HeatContestants
+import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.RiderId
-import com.bimschas.pwascoring.domain.ScoreSheet
 import com.bimschas.pwascoring.domain.ScoreSheets
 import com.bimschas.pwascoring.domain.WaveScore
 
@@ -24,6 +26,7 @@ trait HeatService {
   def contestants: Future[HeatContestants]
   def scoreSheets: Future[ScoreSheets]
   def score(riderId: RiderId, waveScore: WaveScore): Future[Either[UnknownRiderId, WaveScored]]
+  def score(riderId: RiderId, jumpScore: JumpScore): Future[Either[UnknownRiderId, JumpScored]]
 }
 
 case class ActorBasedHeatService(heatEntity: EntityRef[HeatCommand])(implicit scheduler: Scheduler, ec: ExecutionContext) extends HeatService {
@@ -37,4 +40,7 @@ case class ActorBasedHeatService(heatEntity: EntityRef[HeatCommand])(implicit sc
 
   override def score(riderId: RiderId, waveScore: WaveScore): Future[Either[UnknownRiderId, WaveScored]] =
     heatEntity ? (ref => ScoreWave(riderId, waveScore, ref))
+
+  override def score(riderId: RiderId, jumpScore: JumpScore): Future[Either[UnknownRiderId, JumpScored]] =
+    heatEntity ? (ref => ScoreJump(riderId, jumpScore, ref))
 }
