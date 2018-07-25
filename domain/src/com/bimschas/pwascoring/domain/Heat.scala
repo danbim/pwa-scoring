@@ -1,21 +1,21 @@
 package com.bimschas.pwascoring.domain
 
-import com.bimschas.pwascoring.domain.Heat.UnknownRiderId
+import com.bimschas.pwascoring.domain.Heat.RiderIdUnknown
 
 final case class Heat(contestants: HeatContestants, scoreSheets: ScoreSheets) {
 
-  def scoreJump(riderId: RiderId, jumpScore: JumpScore): Either[UnknownRiderId, JumpScoredEvent] = {
+  def scoreJump(riderId: RiderId, jumpScore: JumpScore): Either[RiderIdUnknown, JumpScoredEvent] = {
     if (contestants.riderIds.contains(riderId))
       Right(JumpScoredEvent(riderId, jumpScore))
     else
-      Left(UnknownRiderId(riderId))
+      Left(RiderIdUnknown(riderId))
   }
 
-  def scoreWave(riderId: RiderId, waveScore: WaveScore): Either[UnknownRiderId, WaveScoredEvent] = {
+  def scoreWave(riderId: RiderId, waveScore: WaveScore): Either[RiderIdUnknown, WaveScoredEvent] = {
     if (contestants.riderIds.contains(riderId))
       Right(WaveScoredEvent(riderId, waveScore))
     else
-      Left(UnknownRiderId(riderId))
+      Left(RiderIdUnknown(riderId))
   }
 
   def handleEvent(event: HeatEvent): Heat = {
@@ -37,7 +37,7 @@ final case class Heat(contestants: HeatContestants, scoreSheets: ScoreSheets) {
 object Heat {
 
   sealed trait Errors
-  final case class UnknownRiderId(riderId: RiderId)
+  final case class RiderIdUnknown(riderId: RiderId)
 
   def handleEvent(heat: Heat, event: HeatEvent): Heat =
     heat.handleEvent(event)

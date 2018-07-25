@@ -23,7 +23,7 @@ import com.bimschas.pwascoring.HeatActor.WaveScored
 import com.bimschas.pwascoring.domain.BackLoop
 import com.bimschas.pwascoring.domain.Contest.HeatAlreadyStarted
 import com.bimschas.pwascoring.domain.Contest.HeatIdUnknown
-import com.bimschas.pwascoring.domain.Heat.UnknownRiderId
+import com.bimschas.pwascoring.domain.Heat.RiderIdUnknown
 import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
@@ -120,8 +120,8 @@ class ContestActorSpec extends WordSpec
           )
           val scores = grahamsWaveScores ++ juliansWaveScores ++ grahamsJumpScores ++ juliansJumpScores
 
-          val waveScoreProbe = TestProbe[Either[UnknownRiderId, WaveScored]]
-          val jumpScoreProbe = TestProbe[Either[UnknownRiderId, JumpScored]]
+          val waveScoreProbe = TestProbe[Either[RiderIdUnknown, WaveScored]]
+          val jumpScoreProbe = TestProbe[Either[RiderIdUnknown, JumpScored]]
 
           def sendCommandAndExpectConfirmation(riderId: RiderId, score: Score) = {
             score match {

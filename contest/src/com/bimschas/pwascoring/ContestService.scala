@@ -24,18 +24,15 @@ trait ContestService {
 
   def startHeat(heatId: HeatId, contestants: HeatContestants): Future[Either[HeatAlreadyStarted, HeatStarted]]
   def heats(): Future[Set[HeatId]]
-  def heat(heatId: HeatId): Future[HeatService]
+  def heat(heatId: HeatId): Future[Either[HeatIdUnknown, HeatService]]
 }
 
 case class ActorBasedContestService(contestActor: ActorRef[ContestCommand])(implicit val scheduler: Scheduler, ec: ExecutionContext) extends ContestService {
   private implicit val timeout: Timeout = Timeout(30.seconds)
 
-  override def heat(heatId: HeatId): Future[HeatService] = {
+  override def heat(heatId: HeatId): Future[Either[HeatIdUnknown, HeatService]] = {
     val future: Future[Either[HeatIdUnknown, EntityRef[HeatCommand]]] = contestActor ? (ref => GetHeat(heatId, ref))
-    future flatMap {
-      case Left(heatIdUnknown) => Future.failed(new RuntimeException(s"HeatId ${heatIdUnknown.heatId} unknown")) // TODO meh
-      case Right(heatEntityRef) => Future.successful(ActorBasedHeatService(heatEntityRef))
-    }
+    future.map(_.right.map(ActorBasedHeatService.apply))
   }
 
   override def startHeat(heatId: HeatId, contestants: HeatContestants): Future[Either[HeatAlreadyStarted, HeatStarted]] = {
