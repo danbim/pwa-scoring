@@ -14,60 +14,85 @@ import akka.persistence.typed.scaladsl.PersistentBehaviors.Effect
 import com.bimschas.pwascoring.HeatActor.HeatCommand
 import com.bimschas.pwascoring.HeatActor.PassivateHeat
 import com.bimschas.pwascoring.domain.Contest
-import com.bimschas.pwascoring.domain.Contest.HeatAlreadyStarted
+import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
+import com.bimschas.pwascoring.domain.Contest.ContestNotPlanned
 import com.bimschas.pwascoring.domain.Contest.HeatIdUnknown
 import com.bimschas.pwascoring.domain.ContestEvent
-import com.bimschas.pwascoring.domain.HeatContestants
+import com.bimschas.pwascoring.domain.ContestPlannedEvent
 import com.bimschas.pwascoring.domain.HeatId
-import com.bimschas.pwascoring.domain.Implicits.HeatIdOps
 
 object ContestActor {
 
-  sealed trait ContestCommand
-  final case class StartHeat(heatId: HeatId, contestants: HeatContestants, replyTo: ActorRef[Either[HeatAlreadyStarted, HeatStarted]]) extends ContestCommand
-  final case class GetHeats(replyTo: ActorRef[Set[HeatId]]) extends ContestCommand
-  final case class GetHeat(heatId: HeatId, replyTo: ActorRef[Either[HeatIdUnknown, EntityRef[HeatCommand]]]) extends ContestCommand
-  final case object PassivateContest extends ContestCommand
+  ////////////////////////////
+  // Commands and Responses //
+  ////////////////////////////
 
-  sealed trait ContestResponse
-  final case class HeatStarted(handle: EntityRef[HeatCommand]) extends ContestResponse
+  sealed trait ContestCommand
+
+  type PlanContestResponse = Either[ContestAlreadyPlanned.type, ContestPlannedEvent]
+  case class PlanContest(heatIds: Set[HeatId], replyTo: ActorRef[PlanContestResponse]) extends ContestCommand
+
+  type GetHeatsResponse = Either[ContestNotPlanned.type, Set[HeatId]]
+  case class GetHeats(replyTo: ActorRef[GetHeatsResponse]) extends ContestCommand
+
+  type GetHeatResponse = Either[HeatIdUnknown, EntityRef[HeatCommand]]
+  case class GetHeat(heatId: HeatId, replyTo: ActorRef[GetHeatResponse]) extends ContestCommand
+
+  case object PassivateContest extends ContestCommand
+
+  //////////////
+  // Behavior //
+  //////////////
 
   val PersistenceId = "ContestPersistenceId"
 
-  val behavior: Behavior[ContestCommand] = {
+  val behavior: Behavior[ContestCommand] =
     PersistentBehaviors.immutable[ContestCommand, ContestEvent, Contest](
       persistenceId = ContestActor.PersistenceId,
       initialState = Contest.empty,
       commandHandler = contestCommandHandler,
-      eventHandler = Contest.handleEvent
+      eventHandler = eventHandler
     )
-  }
+
+  ///////////////////
+  // Event Handler //
+  ///////////////////
+
+  private lazy val eventHandler: (Contest, ContestEvent) => Contest =
+    (state, event) => state.handleEvent(event)
+
+  /////////////////////
+  // Command Handler //
+  /////////////////////
 
   private lazy val contestCommandHandler: CommandHandler[ContestCommand, ContestEvent, Contest] = {
     case (ctx, state, cmd) =>
       cmd match {
 
-        case StartHeat(heatId, contestants, replyTo) =>
-          state.startHeat(heatId, contestants) match {
-            case Left(heatAlreadyStarted) =>
-              Effect.none.andThen(_ => replyTo ! Left(heatAlreadyStarted))
-            case Right(heatStartedEvent) =>
-              Effect.persist(heatStartedEvent).andThen { _ =>
-                spawnHeatEntity(ctx, heatId, contestants)
-                replyTo ! Right(HeatStarted(heatEntityRef(ctx, heatId)))
+        case PlanContest(heatIds, replyTo) =>
+          state.planContest(heatIds) match {
+            case Left(contestAlreadyPlanned) => Effect.none.andThen(_ => replyTo ! Left(contestAlreadyPlanned))
+            case Right(contestPlannedEvent) =>
+              Effect.persist(contestPlannedEvent).andThen { _ =>
+                spawnShardRegion(ctx)
+                replyTo ! Right(contestPlannedEvent)
               }
           }
 
         case GetHeats(sender) =>
-          sender ! state.heats
-          Effect.none
+          Effect.none.andThen { _ =>
+            sender ! state.heats
+          }
 
         case GetHeat(heatId, sender) =>
-          val response =
-            if (state.heats.contains(heatId)) Right(heatEntityRef(ctx, heatId))
-            else Left(HeatIdUnknown(heatId))
-          sender ! response
-          Effect.none
+          Effect.none.andThen { _ =>
+            val response = state.heats match {
+              case Left(ContestNotPlanned) => Left(HeatIdUnknown(heatId))
+              case Right(heatIds) if !heatIds.contains(heatId) => Left(HeatIdUnknown(heatId))
+              case Right(_) => Right(heatEntityRef(ctx, heatId))
+            }
+            sender ! response
+          }
 
         case PassivateContest =>
           Effect.stop
@@ -78,20 +103,15 @@ object ContestActor {
     ClusterSharding(ctx.system)
 
   private def heatEntityRef(ctx: ActorContext[_], heatId: HeatId): EntityRef[HeatCommand] =
-    sharding(ctx).entityRefFor(heatId.entityTypeKey, heatId.entityId)
+    sharding(ctx).entityRefFor(HeatEntityTypeKey, heatId.entityId)
 
-  private def spawnHeatEntity(
-    ctx: ActorContext[_],
-    heatId: HeatId,
-    contestants: HeatContestants
-  ): ActorRef[ShardingEnvelope[HeatCommand]] = {
+  private def spawnShardRegion(ctx: ActorContext[_]): ActorRef[ShardingEnvelope[HeatCommand]] =
     sharding(ctx).spawn(
-      behavior = entityId => HeatActor.heatBehavior(entityId, heatId, contestants),
+      behavior = entityId => HeatActor.heatBehavior(entityId),
       props = Props.empty,
-      typeKey = heatId.entityTypeKey,
+      typeKey = HeatEntityTypeKey,
       settings = ClusterShardingSettings(ctx.system),
       maxNumberOfShards = 100,
       handOffStopMessage = PassivateHeat
     )
-  }
 }

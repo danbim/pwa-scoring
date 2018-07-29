@@ -1,17 +1,17 @@
 package com.bimschas.pwascoring.rest.json
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import com.bimschas.pwascoring.HeatActor.JumpScored
-import com.bimschas.pwascoring.HeatActor.WaveScored
 import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
+import com.bimschas.pwascoring.domain.JumpScoredEvent
 import com.bimschas.pwascoring.domain.JumpType
 import com.bimschas.pwascoring.domain.Points
 import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheet
 import com.bimschas.pwascoring.domain.ScoreSheets
 import com.bimschas.pwascoring.domain.WaveScore
+import com.bimschas.pwascoring.domain.WaveScoredEvent
 import spray.json.DefaultJsonProtocol
 import spray.json.DeserializationException
 import spray.json.JsNumber
@@ -51,8 +51,8 @@ trait ContestJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val waveScoreFormat: RootJsonFormat[WaveScore] =
     jsonFormat1(WaveScore.apply)
 
-  implicit val waveScoredFormat: RootJsonFormat[WaveScored] =
-    jsonFormat2(WaveScored.apply)
+  implicit val waveScoredFormat: RootJsonFormat[WaveScoredEvent] =
+    jsonFormat3(WaveScoredEvent.apply)
 
   implicit val jumpTypeFormat: RootJsonFormat[JumpType] = new RootJsonFormat[JumpType] {
     override def write(obj: JumpType): JsValue = JsString(obj.toString.toLowerCase())
@@ -67,8 +67,8 @@ trait ContestJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val jumpScoreFormat: RootJsonFormat[JumpScore] =
     jsonFormat2(JumpScore.apply)
 
-  implicit val jumpScoredFormat: RootJsonFormat[JumpScored] =
-    jsonFormat2(JumpScored.apply)
+  implicit val jumpScoredFormat: RootJsonFormat[JumpScoredEvent] =
+    jsonFormat3(JumpScoredEvent.apply)
 
   implicit val riderIdFormat: RootJsonFormat[RiderId] = new RootJsonFormat[RiderId] {
     override def write(obj: RiderId): JsValue = JsString(obj.sailNr)

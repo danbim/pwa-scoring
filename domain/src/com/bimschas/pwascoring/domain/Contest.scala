@@ -1,32 +1,39 @@
 package com.bimschas.pwascoring.domain
 
-import com.bimschas.pwascoring.domain.Contest.HeatAlreadyStarted
+import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
+import com.bimschas.pwascoring.domain.Contest.ContestNotPlanned
 
-final case class Contest(heats: Set[HeatId]) {
+import scala.collection.immutable.TreeSet
 
-  def startHeat(heatId: HeatId, contestants: HeatContestants): Either[HeatAlreadyStarted, HeatStartedEvent] = {
-    if (heats.contains(heatId)) {
-      Left(HeatAlreadyStarted(heatId))
+final case class Contest(private val plannedHeats: Option[TreeSet[HeatId]]) {
+
+  lazy val heats: Either[ContestNotPlanned.type, Set[HeatId]] =
+    plannedHeats match {
+      case None => Left(ContestNotPlanned)
+      case Some(heatIds) => Right(heatIds)
+    }
+
+  def planContest(heatIds: Set[HeatId]): Either[ContestAlreadyPlanned.type, ContestPlannedEvent] = {
+    if (plannedHeats.isDefined) {
+      Left(ContestAlreadyPlanned)
     } else {
-      Right(HeatStartedEvent(heatId))
+      Right(ContestPlannedEvent(heatIds))
     }
   }
 
   def handleEvent(contestEvent: ContestEvent): Contest = {
     contestEvent match {
-      case HeatStartedEvent(heatId) => Contest(heats + heatId)
+      case ContestPlannedEvent(heatIds) => Contest(plannedHeats = Some(TreeSet.empty[HeatId] ++ heatIds))
     }
   }
 }
 
 object Contest {
 
-  final case class HeatAlreadyStarted(heatId: HeatId)
+  final case object ContestNotPlanned
+  final case object ContestAlreadyPlanned
   final case class HeatIdUnknown(heatId: HeatId)
 
-  def handleEvent(contest: Contest, contestEvent: ContestEvent): Contest =
-    contest.handleEvent(contestEvent)
-
   def empty: Contest =
-    Contest(Set.empty)
+    Contest(plannedHeats = None)
 }

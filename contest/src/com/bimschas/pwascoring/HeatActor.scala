@@ -6,66 +6,144 @@ import akka.persistence.typed.scaladsl.PersistentBehaviors
 import akka.persistence.typed.scaladsl.PersistentBehaviors.CommandHandler
 import akka.persistence.typed.scaladsl.PersistentBehaviors.Effect
 import com.bimschas.pwascoring.domain.Heat
-import com.bimschas.pwascoring.domain.Heat.RiderIdUnknown
+import com.bimschas.pwascoring.domain.Heat.EndHeatError
+import com.bimschas.pwascoring.domain.Heat.HeatNotPlanned
+import com.bimschas.pwascoring.domain.Heat.PlanHeatError
+import com.bimschas.pwascoring.domain.Heat.ScoreJumpError
+import com.bimschas.pwascoring.domain.Heat.ScoreWaveError
+import com.bimschas.pwascoring.domain.Heat.StartHeatError
 import com.bimschas.pwascoring.domain.HeatContestants
+import com.bimschas.pwascoring.domain.HeatEndedEvent
 import com.bimschas.pwascoring.domain.HeatEvent
 import com.bimschas.pwascoring.domain.HeatId
+import com.bimschas.pwascoring.domain.HeatPlannedEvent
+import com.bimschas.pwascoring.domain.HeatStartedEvent
 import com.bimschas.pwascoring.domain.JumpScore
+import com.bimschas.pwascoring.domain.JumpScoredEvent
 import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheets
 import com.bimschas.pwascoring.domain.WaveScore
+import com.bimschas.pwascoring.domain.WaveScoredEvent
 
 object HeatActor {
 
+  ////////////////////////////
+  // Commands and Responses //
+  ////////////////////////////
+
   sealed trait HeatCommand
-  final case class ScoreWave(riderId: RiderId, waveScore: WaveScore, replyTo: ActorRef[Either[RiderIdUnknown, WaveScored]]) extends HeatCommand
-  final case class ScoreJump(riderId: RiderId, jumpScore: JumpScore, replyTo: ActorRef[Either[RiderIdUnknown, JumpScored]]) extends HeatCommand
-  final case class GetScoreSheets(replyTo: ActorRef[ScoreSheets]) extends HeatCommand
-  final case class GetContestants(replyTo: ActorRef[HeatContestants]) extends HeatCommand
-  final case object PassivateHeat extends HeatCommand
 
-  sealed trait HeatResponse
-  final case class WaveScored(riderId: RiderId, waveScore: WaveScore) extends HeatResponse
-  final case class JumpScored(riderId: RiderId, jumpScore: JumpScore) extends HeatResponse
+  type PlanHeatResponse = Either[PlanHeatError, HeatPlannedEvent]
+  case class PlanHeat(contestants: HeatContestants, replyTo: ActorRef[PlanHeatResponse]) extends HeatCommand
 
-  def heatBehavior(entityId: String, heatId: HeatId, contestants: HeatContestants): Behavior[HeatCommand] =
+  type StartHeatResponse = Either[StartHeatError, HeatStartedEvent]
+  case class StartHeat(replyTo: ActorRef[StartHeatResponse]) extends HeatCommand
+
+  type ScoreWaveResponse = Either[ScoreWaveError, WaveScoredEvent]
+  case class ScoreWave(riderId: RiderId, waveScore: WaveScore, replyTo: ActorRef[ScoreWaveResponse]) extends HeatCommand
+
+  type ScoreJumpResponse = Either[ScoreJumpError, JumpScoredEvent]
+  case class ScoreJump(riderId: RiderId, jumpScore: JumpScore, replyTo: ActorRef[ScoreJumpResponse]) extends HeatCommand
+
+  type GetScoreSheetsResponse = Either[HeatNotPlanned.type, ScoreSheets]
+  case class GetScoreSheets(replyTo: ActorRef[GetScoreSheetsResponse]) extends HeatCommand
+
+  type GetContestantsResponse = Either[HeatNotPlanned.type, HeatContestants]
+  case class GetContestants(replyTo: ActorRef[GetContestantsResponse]) extends HeatCommand
+
+  type EndHeatResponse = Either[EndHeatError, HeatEndedEvent]
+  case class EndHeat(replyTo: ActorRef[EndHeatResponse]) extends HeatCommand
+
+  case object PassivateHeat extends HeatCommand
+
+  //////////////
+  // Behavior //
+  //////////////
+
+  def heatBehavior(entityId: String): Behavior[HeatCommand] =
     PersistentBehaviors.immutable[HeatCommand, HeatEvent, Heat](
       persistenceId = entityId,
-      initialState = Heat.empty(contestants),
-      commandHandler = heatCommandHandler,
-      eventHandler = Heat.handleEvent
+      initialState = Heat(heatId = HeatId.parse(entityId).get),
+      commandHandler = commandHandler,
+      eventHandler = heatEventHandler
     )
 
-  private lazy val heatCommandHandler: CommandHandler[HeatCommand, HeatEvent, Heat] = {
-    case (_, state, cmd) =>
-      cmd match {
+  ///////////////////
+  // Event Handler //
+  ///////////////////
 
-        case ScoreWave(riderId, waveScore, replyTo) =>
-          state.scoreWave(riderId, waveScore) match {
-            case Left(unknownRiderId) =>
-              Effect.none.andThen(_ => replyTo ! Left(unknownRiderId))
-            case Right(waveScoredEvent) =>
-              Effect.persist(waveScoredEvent).andThen(_ => replyTo ! Right(WaveScored(riderId, waveScore)))
+  private lazy val heatEventHandler: (Heat, HeatEvent) => Heat =
+    (state, event) => state.handleEvent(event)
+
+  /////////////////////
+  // Command Handler //
+  /////////////////////
+
+  private lazy val commandHandler: CommandHandler[HeatCommand, HeatEvent, Heat] =
+    (_, state, command) => command match {
+
+      case HeatActor.PlanHeat(contestants, replyTo) =>
+        state.planHeat(contestants) match {
+          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+          case Right(heatPlannedEvent) =>
+            Effect.persist(heatPlannedEvent).andThen { _ =>
+              replyTo ! Right(heatPlannedEvent)
+            }
+        }
+
+      case HeatActor.GetContestants(replyTo) =>
+        Effect.none.andThen(_ =>
+          state.scoreSheets match {
+            case None => replyTo ! Left(HeatNotPlanned)
+            case Some(sheets) => replyTo ! Right(HeatContestants(sheets.scoreSheetsByRider.keySet))
           }
+        )
 
-        case ScoreJump(riderId, jumpScore, replyTo) =>
-          state.scoreJump(riderId, jumpScore) match {
-            case Left(unknownRiderId) =>
-              Effect.none.andThen(_ => replyTo ! Left(unknownRiderId))
-            case Right(jumpScoredEvent) =>
-              Effect.persist(jumpScoredEvent).andThen(_ => replyTo ! Right(JumpScored(riderId, jumpScore)))
+      case HeatActor.GetScoreSheets(replyTo) =>
+        Effect.none.andThen(_ =>
+          state.scoreSheets match {
+            case None => replyTo ! Left(HeatNotPlanned)
+            case Some(sheets) => replyTo ! Right(sheets)
           }
+        )
 
-        case GetScoreSheets(replyTo) =>
-          replyTo ! state.scoreSheets
-          Effect.none
+      case HeatActor.StartHeat(replyTo) =>
+        state.startHeat() match {
+          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+          case Right(heatStartedEvent) =>
+            Effect.persist(heatStartedEvent).andThen { _ =>
+              replyTo ! Right(heatStartedEvent)
+            }
+        }
 
-        case GetContestants(replyTo) =>
-          replyTo ! state.contestants
-          Effect.none
+      case HeatActor.ScoreJump(riderId, jumpScore, replyTo) =>
+        state.scoreJump(riderId, jumpScore) match {
+          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+          case Right(jumpScoredEvent) =>
+            Effect.persist(jumpScoredEvent).andThen { _ =>
+              replyTo ! Right(jumpScoredEvent)
+            }
+        }
 
-        case PassivateHeat =>
-          Effect.stop
-      }
-  }
+      case HeatActor.ScoreWave(riderId, waveScore, replyTo) =>
+        state.scoreWave(riderId, waveScore) match {
+          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+          case Right(waveScoredEvent) =>
+            Effect.persist(waveScoredEvent).andThen { _ =>
+              replyTo ! Right(waveScoredEvent)
+            }
+        }
+
+      case HeatActor.EndHeat(replyTo) =>
+        state.endHeat() match {
+          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+          case Right(heatEndedEvent) =>
+            Effect.persist(heatEndedEvent).andThen { _ =>
+              replyTo ! Right(heatEndedEvent)
+            }
+        }
+
+      case HeatActor.PassivateHeat =>
+        Effect.stop
+    }
 }

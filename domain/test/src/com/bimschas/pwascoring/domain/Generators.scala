@@ -1,6 +1,8 @@
 package com.bimschas.pwascoring.domain
 
 import org.scalacheck.Gen
+import org.scalacheck.Gen.nonEmptyContainerOf
+import org.scalacheck.Gen.resize
 
 import scala.collection.immutable.List
 
@@ -25,6 +27,12 @@ trait Generators {
 
   def nonEmptyShortListGen[A](g: Gen[A]): Gen[List[A]] =
     nonEmptyListGen(10, g)
+
+  def nonEmptySetGen[A](maxSize: Int, g: Gen[A]): Gen[Set[A]] =
+    resize(maxSize, nonEmptyContainerOf[Set, A](g))
+
+  def nonEmptySmallSetGen[A](g: Gen[A]): Gen[Set[A]] =
+    nonEmptySetGen(10, g)
 
   val heatIdGen: Gen[HeatId] =
     for {

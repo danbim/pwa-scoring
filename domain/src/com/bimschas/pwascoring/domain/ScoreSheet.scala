@@ -9,6 +9,12 @@ final case class ScoreSheets(scoreSheetsByRider: Map[RiderId, ScoreSheet]) {
       copy(scoreSheetsByRider = scoreSheetsByRider + (riderId -> (scoreSheetsByRider.getOrElse(riderId, ScoreSheet.empty) + jumpScore)))
 }
 
+object ScoreSheets {
+
+  def apply(contestants: HeatContestants): ScoreSheets =
+    ScoreSheets(contestants.riderIds.map(_ -> ScoreSheet.empty).toMap)
+}
+
 final case class ScoreSheet(waveScores: List[WaveScore], jumpScores: List[JumpScore]) {
 
   def +(waveScore: WaveScore): ScoreSheet = copy(waveScores = waveScores :+ waveScore)

@@ -17,6 +17,15 @@ def compile = T {
   app.compile
 }
 
+object test extends Module {
+  def compile = T {
+    domain.test.compile
+    contest.test.compile
+    rest.test.compile
+    app.test.compile
+  }
+}
+
 trait ScalaModuleBase extends ScalaModule {
   override def scalaVersion: T[String] = Settings.scalaVersion
   trait TestsBase extends Tests {
@@ -73,4 +82,3 @@ object app extends ScalaModuleBase {
   override def mainClass = Some("com.bimschas.pwascoring.app.PwaScoringServer")
   object test extends TestsBase
 }
-

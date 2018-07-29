@@ -1,4 +1,4 @@
 package com.bimschas.pwascoring.domain
 
-final case class HeatContestants(riderIds: List[RiderId])
+final case class HeatContestants(riderIds: Set[RiderId])
 

@@ -13,6 +13,9 @@ final case class HeatId(number: Int, classifier: Option[String]) {
 
 object HeatId {
 
+  implicit val ordering: Ordering[HeatId] =
+    Ordering.Tuple2(Ordering.Int, Ordering.String).on(heatId => (heatId.number, heatId.classifier.getOrElse(" ")))
+
   def parse(heatIdString: String): Try[HeatId] = {
     heatIdString.split("-").toList match {
       case number :: classifier :: Nil => Success(HeatId(number.toInt, Some(classifier)))
