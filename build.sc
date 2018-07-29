@@ -2,12 +2,30 @@
 import mill._
 import mill.scalalib._
 
-object Settings {
-  val scalaVersion = "2.12.6"
-  val akkaVersion = "2.5.11"
-  val akkaHttpVersion = "10.1.3"
-  val scalaTestVersion = "3.0.5"
-  val scalaCheckVersion = "1.14.0"
+object Dependencies {
+  object Versions {
+    val scalaVersion = "2.12.6"
+    val akkaVersion = "2.5.11"
+    val akkaHttpVersion = "10.1.3"
+    val scalaTestVersion = "3.0.5"
+    val scalaCheckVersion = "1.14.0"
+  }
+  import Versions._
+
+  val scalaTestFramework = "org.scalatest.tools.Framework"
+  val scalaTest = ivy"org.scalatest::scalatest:$scalaTestVersion"
+  val scalaCheck = ivy"org.scalacheck::scalacheck:$scalaCheckVersion"
+
+  val akkaActorTyped = ivy"com.typesafe.akka::akka-actor-typed:$akkaVersion"
+  val akkaPersistenceTyped = ivy"com.typesafe.akka::akka-persistence-typed:$akkaVersion"
+  val akkaClusterShardingTyped = ivy"com.typesafe.akka::akka-cluster-sharding-typed:$akkaVersion"
+  val akkaTestKitTyped = ivy"com.typesafe.akka::akka-testkit-typed:$akkaVersion"
+
+  val akkaHttp = ivy"com.typesafe.akka::akka-http:$akkaHttpVersion"
+  val akkaHttpSprayJson = ivy"com.typesafe.akka::akka-http-spray-json:$akkaHttpVersion"
+  val akkaHttpTestKit = ivy"com.typesafe.akka::akka-http-testkit:$akkaHttpVersion"
+
+  val levelDb = ivy"org.fusesource.leveldbjni:leveldbjni-all:1.8"
 }
 
 def compile = T {
@@ -27,15 +45,11 @@ object test extends Module {
 }
 
 trait ScalaModuleBase extends ScalaModule {
-  override def scalaVersion: T[String] = Settings.scalaVersion
+  import Dependencies._
+  override def scalaVersion: T[String] = Dependencies.Versions.scalaVersion
   trait TestsBase extends Tests {
-    override def testFrameworks: T[Seq[String]] =
-      Seq("org.scalatest.tools.Framework")
-    override def ivyDeps: T[Agg[Dep]] =
-      T(Agg(
-        ivy"org.scalatest::scalatest:${Settings.scalaTestVersion}",
-        ivy"org.scalacheck::scalacheck:${Settings.scalaCheckVersion}"
-      ) ++ moreIvyDeps)
+    override def testFrameworks: T[Seq[String]] = Seq(scalaTestFramework)
+    override def ivyDeps: T[Agg[Dep]] = T(Agg(scalaTest, scalaCheck) ++ moreIvyDeps)
     def moreIvyDeps: Agg[Dep] = Agg.empty
   }
 }
@@ -45,35 +59,23 @@ object domain extends ScalaModuleBase {
 }
 
 object contest extends ScalaModuleBase {
-  import Settings._
+  import Dependencies._
 
   override def moduleDeps = Seq(domain)
-  override def ivyDeps = Agg(
-    ivy"com.typesafe.akka::akka-actor-typed:$akkaVersion",
-    ivy"com.typesafe.akka::akka-persistence-typed:$akkaVersion",
-    ivy"com.typesafe.akka::akka-cluster-sharding-typed:$akkaVersion"
-  )
+  override def ivyDeps = Agg(akkaActorTyped, akkaPersistenceTyped, akkaClusterShardingTyped)
   object test extends TestsBase {
-    override def moreIvyDeps: Agg[Dep] = Agg(
-      ivy"com.typesafe.akka::akka-testkit-typed:$akkaVersion",
-      ivy"org.fusesource.leveldbjni:leveldbjni-all:1.8"
-    )
+    override def moreIvyDeps: Agg[Dep] = Agg(akkaTestKitTyped, levelDb)
   }
 }
 
 object rest extends ScalaModuleBase {
-  import Settings._
+  import Dependencies._
 
   override def moduleDeps = Seq(domain, contest)
-  override def ivyDeps = Agg(
-    ivy"com.typesafe.akka::akka-http:$akkaHttpVersion",
-    ivy"com.typesafe.akka::akka-http-spray-json:$akkaHttpVersion"
-  )
+  override def ivyDeps = Agg(akkaHttp, akkaHttpSprayJson)
   object test extends TestsBase {
     override def moduleDeps = super.moduleDeps ++ Seq(domain.test)
-    override def moreIvyDeps = Agg(
-      ivy"com.typesafe.akka::akka-http-testkit:$akkaHttpVersion"
-    )
+    override def moreIvyDeps = Agg(akkaHttpTestKit)
   }
 }
 
