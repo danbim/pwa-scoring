@@ -26,7 +26,6 @@ import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.WaveScore
-import com.bimschas.pwascoring.rest.json.ContestJsonSupport
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -64,8 +63,8 @@ case class RestService(
   }
 
   private sealed trait BadRequest
-  private case object ContestAlreadyPlannedException extends IllegalStateException(s"Contest already planned") with NoStackTrace
-  private case object ContestNotPlannedException extends IllegalStateException(s"Contest was not yet planned") with NoStackTrace
+  private case object ContestAlreadyPlannedException extends IllegalStateException(s"Contest already planned") with NoStackTrace with BadRequest
+  private case object ContestNotPlannedException extends IllegalStateException(s"Contest was not yet planned") with NoStackTrace with BadRequest
   private case class HeatNotPlannedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId was not yet planned") with NoStackTrace with BadRequest
   private case class HeatAlreadyPlannedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId is already planned") with NoStackTrace with BadRequest
   private case class HeatNotStartedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId has not yet started") with NoStackTrace with BadRequest
@@ -76,9 +75,10 @@ case class RestService(
 
   private val exceptionHandler: ExceptionHandler = ExceptionHandler {
     case badRequest: BadRequest => badRequest match {
+      case e: ContestNotPlannedException.type => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
       case e: ContestAlreadyPlannedException.type => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: HeatIdUnknownException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: RiderIdUnknownException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
+      case e: HeatIdUnknownException => complete(HttpResponse(StatusCodes.NotFound, entity = e.getMessage))
+      case e: RiderIdUnknownException => complete(HttpResponse(StatusCodes.NotFound, entity = e.getMessage))
       case e: HeatNotPlannedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
       case e: HeatNotStartedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
       case e: HeatAlreadyStartedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
@@ -90,8 +90,8 @@ case class RestService(
   lazy val route: Route = handleExceptions(exceptionHandler) {
 
     Endpoints.putHeats {
-      entity(as[Set[HeatId]]) { heatIds =>
-        onSuccess(contestService.planContest(heatIds)) {
+      entity(as[ContestSpec]) { contestSpec =>
+        onSuccess(contestService.planContest(contestSpec.heatIds)) {
           case Left(ContestAlreadyPlanned) => failWith(ContestAlreadyPlannedException)
           case Right(_) => complete(OK)
         }
@@ -131,36 +131,24 @@ case class RestService(
       }
     } ~
     Endpoints.getHeatContestants { heatId =>
-      onSuccess(contestService.heat(heatId)) {
-        case Left(HeatIdUnknown(unknownHeatId)) => failWith(HeatIdUnknownException(unknownHeatId))
-        case Right(heatService) =>
-          onSuccess(heatService.contestants()) {
-            case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
-            case Right(contestants) => complete(contestants)
-          }
+      withExistingHeat(heatId)(_.contestants()) {
+        case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
+        case Right(contestants) => complete(contestants)
       }
     } ~
     Endpoints.getHeatScoreSheets { heatId =>
-      onSuccess(contestService.heat(heatId)) {
-        case Left(HeatIdUnknown(unknownHeatId)) => failWith(HeatIdUnknownException(unknownHeatId))
-        case Right(heatService) =>
-          onSuccess(heatService.scoreSheets()) {
-            case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
-            case Right(scoreSheets) => complete(scoreSheets)
-          }
+      withExistingHeat(heatId)(_.scoreSheets()) {
+        case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
+        case Right(scoreSheets) => complete(scoreSheets)
       }
     } ~
     Endpoints.postHeatWaveScore { case (heatId, riderId) =>
       entity(as[WaveScore]) { waveScore =>
-        onSuccess(contestService.heat(heatId)) {
-          case Left(HeatIdUnknown(_)) => failWith(HeatIdUnknownException(heatId))
-          case Right(heatService) =>
-            onSuccess(heatService.score(riderId, waveScore)) {
-              case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
-              case Left(HeatAlreadyEnded) => failWith(HeatAlreadyStartedException(heatId))
-              case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
-              case Right(waveScoredEvent) => complete(waveScoredEvent)
-            }
+        withExistingHeat(heatId)(_.score(riderId, waveScore)) {
+          case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
+          case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
+          case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
+          case Right(_) => complete(OK)
         }
       }
     } ~
@@ -168,9 +156,9 @@ case class RestService(
       entity(as[JumpScore]) { jumpScore =>
         withExistingHeat(heatId)(_.score(riderId, jumpScore)) {
           case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
-          case Left(HeatAlreadyEnded) => failWith(HeatAlreadyStartedException(heatId))
+          case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
           case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
-          case Right(jumpScoredEvent) => complete(jumpScoredEvent)
+          case Right(_) => complete(OK)
         }
       }
     }

@@ -11,7 +11,6 @@ import akka.testkit.TestKitBase
 import com.bimschas.pwascoring.ActorBasedContestService
 import com.bimschas.pwascoring.domain.Generators
 import com.bimschas.pwascoring.domain.HeatId
-import com.bimschas.pwascoring.rest.json.ContestJsonSupport
 import org.scalacheck.Gen
 import org.scalatest.Matchers
 import org.scalatest.WordSpecLike

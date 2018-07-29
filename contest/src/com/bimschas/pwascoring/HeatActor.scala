@@ -82,7 +82,7 @@ object HeatActor {
   private lazy val commandHandler: CommandHandler[HeatCommand, HeatEvent, Heat] =
     (_, state, command) => command match {
 
-      case HeatActor.PlanHeat(contestants, replyTo) =>
+      case PlanHeat(contestants, replyTo) =>
         state.planHeat(contestants) match {
           case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
           case Right(heatPlannedEvent) =>
@@ -91,7 +91,7 @@ object HeatActor {
             }
         }
 
-      case HeatActor.GetContestants(replyTo) =>
+      case GetContestants(replyTo) =>
         Effect.none.andThen(_ =>
           state.scoreSheets match {
             case None => replyTo ! Left(HeatNotPlanned)
@@ -99,7 +99,7 @@ object HeatActor {
           }
         )
 
-      case HeatActor.GetScoreSheets(replyTo) =>
+      case GetScoreSheets(replyTo) =>
         Effect.none.andThen(_ =>
           state.scoreSheets match {
             case None => replyTo ! Left(HeatNotPlanned)
@@ -107,7 +107,7 @@ object HeatActor {
           }
         )
 
-      case HeatActor.StartHeat(replyTo) =>
+      case StartHeat(replyTo) =>
         state.startHeat() match {
           case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
           case Right(heatStartedEvent) =>
@@ -116,7 +116,7 @@ object HeatActor {
             }
         }
 
-      case HeatActor.ScoreJump(riderId, jumpScore, replyTo) =>
+      case ScoreJump(riderId, jumpScore, replyTo) =>
         state.scoreJump(riderId, jumpScore) match {
           case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
           case Right(jumpScoredEvent) =>
@@ -125,7 +125,7 @@ object HeatActor {
             }
         }
 
-      case HeatActor.ScoreWave(riderId, waveScore, replyTo) =>
+      case ScoreWave(riderId, waveScore, replyTo) =>
         state.scoreWave(riderId, waveScore) match {
           case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
           case Right(waveScoredEvent) =>
@@ -134,7 +134,7 @@ object HeatActor {
             }
         }
 
-      case HeatActor.EndHeat(replyTo) =>
+      case EndHeat(replyTo) =>
         state.endHeat() match {
           case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
           case Right(heatEndedEvent) =>
@@ -143,7 +143,7 @@ object HeatActor {
             }
         }
 
-      case HeatActor.PassivateHeat =>
+      case PassivateHeat =>
         Effect.stop
     }
 }

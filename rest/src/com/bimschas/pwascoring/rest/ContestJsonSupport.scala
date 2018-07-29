@@ -1,4 +1,4 @@
-package com.bimschas.pwascoring.rest.json
+package com.bimschas.pwascoring.rest
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import com.bimschas.pwascoring.domain.HeatContestants
@@ -40,6 +40,9 @@ trait ContestJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val heatIdSetFormat: RootJsonFormat[Set[HeatId]] =
     immSetFormat(HeatIdFormat)
 
+  implicit val contestSpecFormat: RootJsonFormat[ContestSpec] =
+    jsonFormat1(ContestSpec.apply)
+
   implicit val pointsFormat: RootJsonFormat[Points] = new RootJsonFormat[Points] {
     override def write(obj: Points): JsValue = JsNumber(obj.value)
     override def read(json: JsValue): Points = json match {
@@ -57,9 +60,12 @@ trait ContestJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val jumpTypeFormat: RootJsonFormat[JumpType] = new RootJsonFormat[JumpType] {
     override def write(obj: JumpType): JsValue = JsString(obj.toString.toLowerCase())
     override def read(json: JsValue): JumpType = json match {
-      case JsString(value) => JumpType.values.collectFirst {
-        case jumpType if jumpType.toString.toLowerCase() == value.toLowerCase() => jumpType
-      }.get
+      case JsString(value) =>
+        JumpType.values.collectFirst {
+          case jumpType if jumpType.toString.toLowerCase() == value.toLowerCase() => jumpType
+        }.orElse(
+          throw DeserializationException(s"Expected one of ${JumpType.values.map(_.toString.toLowerCase())}, got [$value]")
+        ).get
       case sthElse => throw DeserializationException(s"Expected one of ${JumpType.values.map(_.toString.toLowerCase())}, got [$sthElse]")
     }
   }

@@ -21,8 +21,16 @@ object PwaScoringServer extends App {
   val contestService = ActorBasedContestService(actorSystem)
   val restService = RestService(RestServiceConfig("localhost", 8080), contestService)
 
-  actorSystem.registerOnTermination(Await.result(restService.shutdown(), 1.minute))
-  ShutdownHooks.register(Await.result(actorSystem.terminate(), 1.minute))
+  actorSystem.registerOnTermination {
+    println(s"Shutting down REST service...")
+    Await.result(restService.shutdown(), 1.minute)
+    println(s"REST service was shut down")
+  }
+  ShutdownHooks.register {
+    println(s"Shutting down ActorSystem...")
+    Await.result(actorSystem.terminate(), 1.minute)
+    println(s"ActorSystem was shut down")
+  }
 
   restService.startup()
 
