@@ -2,6 +2,6 @@
 
 HEAT_ID=$1
 
-curl -v \
+curl -v -s \
   -X GET \
-  "localhost:8080/contest/heats/$HEAT_ID/scoreSheets"
+  "localhost:8080/contest/heats/$HEAT_ID/scoreSheets" | jq

@@ -2,87 +2,17 @@ package com.bimschas.pwascoring.rest
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import com.bimschas.pwascoring.domain.HeatContestants
-import com.bimschas.pwascoring.domain.HeatId
-import com.bimschas.pwascoring.domain.JumpScore
-import com.bimschas.pwascoring.domain.JumpScoredEvent
-import com.bimschas.pwascoring.domain.JumpType
-import com.bimschas.pwascoring.domain.Points
 import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheet
 import com.bimschas.pwascoring.domain.ScoreSheets
-import com.bimschas.pwascoring.domain.WaveScore
-import com.bimschas.pwascoring.domain.WaveScoredEvent
-import spray.json.DefaultJsonProtocol
-import spray.json.DeserializationException
-import spray.json.JsNumber
-import spray.json.JsString
+import com.bimschas.pwascoring.domain.json.DomainJsonSupport
 import spray.json.JsValue
 import spray.json.RootJsonFormat
-import spray.json.deserializationError
 
-trait ContestJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-
-  implicit object HeatIdFormat extends RootJsonFormat[HeatId] {
-    override def read(json: JsValue): HeatId = json match {
-      case JsString(v) => HeatId.parse(v).fold(
-        t => deserializationError(s"$v is not a valid HeatId", t),
-        id => id
-      )
-      case v => deserializationError(s"$v is not a valid HeatId")
-    }
-    override def write(obj: HeatId): JsValue =
-      JsString(obj.toString)
-  }
-
-  implicit val heatIdListFormat: RootJsonFormat[List[HeatId]] =
-    listFormat(HeatIdFormat)
-
-  implicit val heatIdSetFormat: RootJsonFormat[Set[HeatId]] =
-    immSetFormat(HeatIdFormat)
+trait ContestJsonSupport extends DomainJsonSupport with SprayJsonSupport {
 
   implicit val contestSpecFormat: RootJsonFormat[ContestSpec] =
     jsonFormat1(ContestSpec.apply)
-
-  implicit val pointsFormat: RootJsonFormat[Points] = new RootJsonFormat[Points] {
-    override def write(obj: Points): JsValue = JsNumber(obj.value)
-    override def read(json: JsValue): Points = json match {
-      case JsNumber(value) => Points(value)
-      case sthElse => throw DeserializationException(s"Expected a number, got [$sthElse]")
-    }
-  }
-
-  implicit val waveScoreFormat: RootJsonFormat[WaveScore] =
-    jsonFormat1(WaveScore.apply)
-
-  implicit val waveScoredFormat: RootJsonFormat[WaveScoredEvent] =
-    jsonFormat3(WaveScoredEvent.apply)
-
-  implicit val jumpTypeFormat: RootJsonFormat[JumpType] = new RootJsonFormat[JumpType] {
-    override def write(obj: JumpType): JsValue = JsString(obj.toString.toLowerCase())
-    override def read(json: JsValue): JumpType = json match {
-      case JsString(value) =>
-        JumpType.values.collectFirst {
-          case jumpType if jumpType.toString.toLowerCase() == value.toLowerCase() => jumpType
-        }.orElse(
-          throw DeserializationException(s"Expected one of ${JumpType.values.map(_.toString.toLowerCase())}, got [$value]")
-        ).get
-      case sthElse => throw DeserializationException(s"Expected one of ${JumpType.values.map(_.toString.toLowerCase())}, got [$sthElse]")
-    }
-  }
-
-  implicit val jumpScoreFormat: RootJsonFormat[JumpScore] =
-    jsonFormat2(JumpScore.apply)
-
-  implicit val jumpScoredFormat: RootJsonFormat[JumpScoredEvent] =
-    jsonFormat3(JumpScoredEvent.apply)
-
-  implicit val riderIdFormat: RootJsonFormat[RiderId] = new RootJsonFormat[RiderId] {
-    override def write(obj: RiderId): JsValue = JsString(obj.sailNr)
-    override def read(json: JsValue): RiderId = json match {
-      case JsString(value) => RiderId.apply(value)
-      case sthElse => throw DeserializationException(s"Expected a rider ID, got [$sthElse]")
-    }
-  }
 
   implicit val riderIdList: RootJsonFormat[List[RiderId]] =
     listFormat(riderIdFormat)

@@ -7,7 +7,7 @@ POINTS=$4
 
 echo "Scoring $JUMP_TYPE jump in heat $HEAT_ID for rider $RIDER_ID: $POINTS points"
 
-curl -v \
+curl -v -n \
   -X POST \
   -H "Content-Type: application/json" \
   --data-binary "{ \"points\" : $POINTS, \"jumpType\" : \"$JUMP_TYPE\" }" \

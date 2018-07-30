@@ -3,13 +3,17 @@ import mill._
 import mill.scalalib._
 
 object Dependencies {
+
   object Versions {
+
     val scalaVersion = "2.12.6"
     val akkaVersion = "2.5.11"
     val akkaHttpVersion = "10.1.3"
     val scalaTestVersion = "3.0.5"
     val scalaCheckVersion = "1.14.0"
+    val sprayJsonVersion = "1.3.4"
   }
+
   import Versions._
 
   val scalaTestFramework = "org.scalatest.tools.Framework"
@@ -24,6 +28,8 @@ object Dependencies {
   val akkaHttp = ivy"com.typesafe.akka::akka-http:$akkaHttpVersion"
   val akkaHttpSprayJson = ivy"com.typesafe.akka::akka-http-spray-json:$akkaHttpVersion"
   val akkaHttpTestKit = ivy"com.typesafe.akka::akka-http-testkit:$akkaHttpVersion"
+
+  val sprayJson = ivy"io.spray::spray-json:$sprayJsonVersion"
 
   val levelDb = ivy"org.fusesource.leveldbjni:leveldbjni-all:1.8"
 }
@@ -55,6 +61,8 @@ trait ScalaModuleBase extends ScalaModule {
 }
 
 object domain extends ScalaModuleBase {
+  import Dependencies._
+  override def ivyDeps = Agg(sprayJson)
   object test extends TestsBase
 }
 
@@ -62,9 +70,9 @@ object contest extends ScalaModuleBase {
   import Dependencies._
 
   override def moduleDeps = Seq(domain)
-  override def ivyDeps = Agg(akkaActorTyped, akkaPersistenceTyped, akkaClusterShardingTyped)
+  override def ivyDeps = Agg(akkaActorTyped, akkaPersistenceTyped, akkaClusterShardingTyped, levelDb)
   object test extends TestsBase {
-    override def moreIvyDeps: Agg[Dep] = Agg(akkaTestKitTyped, levelDb)
+    override def moreIvyDeps: Agg[Dep] = Agg(akkaTestKitTyped)
   }
 }
 

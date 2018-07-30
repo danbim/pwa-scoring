@@ -52,7 +52,9 @@ object ContestActor {
       initialState = Contest.empty,
       commandHandler = contestCommandHandler,
       eventHandler = eventHandler
-    )
+    ).onRecoveryCompleted { (ctx, _) =>
+      spawnShardRegion(ctx)
+    }
 
   ///////////////////
   // Event Handler //
@@ -74,7 +76,6 @@ object ContestActor {
             case Left(contestAlreadyPlanned) => Effect.none.andThen(_ => replyTo ! Left(contestAlreadyPlanned))
             case Right(contestPlannedEvent) =>
               Effect.persist(contestPlannedEvent).andThen { _ =>
-                spawnShardRegion(ctx)
                 replyTo ! Right(contestPlannedEvent)
               }
           }

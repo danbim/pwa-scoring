@@ -6,7 +6,7 @@ POINTS=$3
 
 echo "Scoring wave in heat $HEAT_ID for rider $RIDER_ID: $POINTS points"
 
-curl -v \
+curl -v -s \
   -X POST \
   -H "Content-Type: application/json" \
   --data-binary "{ \"points\" : $POINTS }" \

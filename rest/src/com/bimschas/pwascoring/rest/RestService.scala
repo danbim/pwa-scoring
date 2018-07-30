@@ -88,8 +88,9 @@ case class RestService(
   }
 
   lazy val route: Route = handleExceptions(exceptionHandler) {
+    import Endpoints._
 
-    Endpoints.putHeats {
+    putHeats {
       entity(as[ContestSpec]) { contestSpec =>
         onSuccess(contestService.planContest(contestSpec.heatIds)) {
           case Left(ContestAlreadyPlanned) => failWith(ContestAlreadyPlannedException)
@@ -97,13 +98,13 @@ case class RestService(
         }
       }
     } ~
-    Endpoints.getHeats {
+    getHeats {
       onSuccess(contestService.heats()) {
         case Left(ContestNotPlanned) => failWith(ContestNotPlannedException)
         case Right(heatIds) => complete(heatIds)
       }
     } ~
-    Endpoints.putHeat { heatId =>
+    putHeat { heatId =>
       parameter('startHeat.?, 'endHeat.?) { (startHeat, endHeat) =>
         if (startHeat.isDefined && startHeat.contains("true")) {
           withExistingHeat(heatId)(_.startHeat()) {
@@ -130,19 +131,19 @@ case class RestService(
         }
       }
     } ~
-    Endpoints.getHeatContestants { heatId =>
+    getHeatContestants { heatId =>
       withExistingHeat(heatId)(_.contestants()) {
         case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
         case Right(contestants) => complete(contestants)
       }
     } ~
-    Endpoints.getHeatScoreSheets { heatId =>
+    getHeatScoreSheets { heatId =>
       withExistingHeat(heatId)(_.scoreSheets()) {
         case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
         case Right(scoreSheets) => complete(scoreSheets)
       }
     } ~
-    Endpoints.postHeatWaveScore { case (heatId, riderId) =>
+    postHeatWaveScore { case (heatId, riderId) =>
       entity(as[WaveScore]) { waveScore =>
         withExistingHeat(heatId)(_.score(riderId, waveScore)) {
           case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
@@ -152,7 +153,7 @@ case class RestService(
         }
       }
     } ~
-    Endpoints.postHeatJumpScore { case (heatId, riderId) =>
+    postHeatJumpScore { case (heatId, riderId) =>
       entity(as[JumpScore]) { jumpScore =>
         withExistingHeat(heatId)(_.score(riderId, jumpScore)) {
           case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
