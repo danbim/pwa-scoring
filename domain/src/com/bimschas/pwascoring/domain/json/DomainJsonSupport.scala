@@ -3,6 +3,7 @@ package com.bimschas.pwascoring.domain.json
 import com.bimschas.pwascoring.domain.ContestPlannedEvent
 import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatEndedEvent
+import com.bimschas.pwascoring.domain.HeatEvent
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.HeatPlannedEvent
 import com.bimschas.pwascoring.domain.HeatStartedEvent
@@ -19,6 +20,7 @@ import spray.json.JsNumber
 import spray.json.JsString
 import spray.json.JsValue
 import spray.json.JsonFormat
+import spray.json.JsonWriter
 import spray.json.RootJsonFormat
 import spray.json.deserializationError
 
@@ -69,7 +71,7 @@ trait DomainJsonSupport extends DefaultJsonProtocol {
   // format: OFF
   implicit val contestPlannedEvent:    RootJsonFormat[ContestPlannedEvent] = jsonFormat1(ContestPlannedEvent.apply)
   implicit val jumpScoreFormat:        RootJsonFormat[JumpScore]           = jsonFormat2(JumpScore.apply)
-  implicit val jumpScoredFormat:       RootJsonFormat[JumpScoredEvent]     = jsonFormat3(JumpScoredEvent.apply)
+  implicit val jumpScoredEventFormat:  RootJsonFormat[JumpScoredEvent]     = jsonFormat3(JumpScoredEvent.apply)
   implicit val waveScoreFormat:        RootJsonFormat[WaveScore]           = jsonFormat1(WaveScore.apply)
   implicit val waveScoredFormat:       RootJsonFormat[WaveScoredEvent]     = jsonFormat3(WaveScoredEvent.apply)
   implicit val heatContestantsFormat:  RootJsonFormat[HeatContestants]     = jsonFormat1(HeatContestants.apply)
@@ -77,4 +79,15 @@ trait DomainJsonSupport extends DefaultJsonProtocol {
   implicit val heatStartedEventFormat: RootJsonFormat[HeatStartedEvent]    = jsonFormat1(HeatStartedEvent.apply)
   implicit val heatEndedEventFormat:   RootJsonFormat[HeatEndedEvent]      = jsonFormat1(HeatEndedEvent.apply)
   // format: ON
+
+  def toJson(heatEvent: HeatEvent): JsValue =
+    heatEvent match {
+      // format: OFF
+      case event: HeatPlannedEvent => implicitly[JsonWriter[HeatPlannedEvent]].write(event)
+      case event: HeatStartedEvent => implicitly[JsonWriter[HeatStartedEvent]].write(event)
+      case event: JumpScoredEvent  => implicitly[JsonWriter[JumpScoredEvent]].write(event)
+      case event: WaveScoredEvent  => implicitly[JsonWriter[WaveScoredEvent]].write(event)
+      case event: HeatEndedEvent   => implicitly[JsonWriter[HeatEndedEvent]].write(event)
+      // format: ON
+    }
 }

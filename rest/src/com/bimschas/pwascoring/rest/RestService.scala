@@ -1,20 +1,21 @@
 package com.bimschas.pwascoring.rest
 
-import java.time.LocalTime
-
-import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.ExceptionHandler
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.DebuggingDirectives
+import akka.persistence.query.PersistenceQuery
+import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Source
 import com.bimschas.pwascoring.ContestService
+import com.bimschas.pwascoring.HeatIdOps
 import com.bimschas.pwascoring.HeatService
 import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
 import com.bimschas.pwascoring.domain.Contest.ContestNotPlanned
@@ -26,6 +27,7 @@ import com.bimschas.pwascoring.domain.Heat.HeatNotPlanned
 import com.bimschas.pwascoring.domain.Heat.HeatNotStarted
 import com.bimschas.pwascoring.domain.Heat.RiderIdUnknown
 import com.bimschas.pwascoring.domain.HeatContestants
+import com.bimschas.pwascoring.domain.HeatEvent
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.RiderId
@@ -34,10 +36,6 @@ import com.bimschas.pwascoring.domain.WaveScore
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
-import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
-import java.time.format.DateTimeFormatter.ISO_LOCAL_TIME
-import akka.http.scaladsl.model.sse.ServerSentEvent
-
 import scala.util.control.NoStackTrace
 
 case class RestServiceConfig(hostname: String, port: Int)
@@ -65,6 +63,7 @@ case class RestService(
     val getHeats           = get  & path("contest" / "heats")
     val putHeat            = put  & path("contest" / "heats" / HeatIdSegment)
     val getHeat            = get  & path("contest" / "heats" / HeatIdSegment)
+    val getHeatEvents      = get  & path("contest" / "heats" / HeatIdSegment / "events")
     val getHeatContestants = get  & path("contest" / "heats" / HeatIdSegment / "contestants")
     val getHeatScoreSheets = get  & path("contest" / "heats" / HeatIdSegment / "scoreSheets")
     val postHeatWaveScore  = post & path("contest" / "heats" / HeatIdSegment / "waveScores" / RiderIdSegment)
@@ -117,10 +116,29 @@ case class RestService(
     getHeat { heatId =>
       get {
         complete {
-          Source
-            .tick(2.seconds, 2.seconds, NotUsed)
-            .map(_ => LocalTime.now())
-            .map(time => ServerSentEvent(ISO_LOCAL_TIME.format(time)))
+          val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+          persistenceQuery
+            .eventsByPersistenceId(heatId.entityId, 0L, Long.MaxValue)
+            .map(event => ServerSentEvent(event.toString))
+            .keepAlive(10.seconds, () => ServerSentEvent.heartbeat)
+        }
+      }
+    } ~
+    getHeatEvents { heatId =>
+      get {
+        complete {
+          val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+          persistenceQuery
+            .eventsByPersistenceId(heatId.entityId, 0L, Long.MaxValue)
+            .filter(_.event.isInstanceOf[HeatEvent])
+            .map { envelope =>
+              val heatEvent = envelope.event.asInstanceOf[HeatEvent]
+              ServerSentEvent(
+                data = toJson(heatEvent).toString(),
+                `type` = heatEvent.getClass.getSimpleName,
+                id = envelope.sequenceNr.toString
+              )
+            }
             .keepAlive(1.second, () => ServerSentEvent.heartbeat)
         }
       }

@@ -22,6 +22,7 @@ object Dependencies {
 
   val akkaActorTyped = ivy"com.typesafe.akka::akka-actor-typed:$akkaVersion"
   val akkaPersistenceTyped = ivy"com.typesafe.akka::akka-persistence-typed:$akkaVersion"
+	val akkaPersistenceQuery = ivy"com.typesafe.akka::akka-persistence-query:$akkaVersion"
   val akkaClusterShardingTyped = ivy"com.typesafe.akka::akka-cluster-sharding-typed:$akkaVersion"
   val akkaTestKitTyped = ivy"com.typesafe.akka::akka-testkit-typed:$akkaVersion"
 
@@ -80,7 +81,7 @@ object rest extends ScalaModuleBase {
   import Dependencies._
 
   override def moduleDeps = Seq(domain, contest)
-  override def ivyDeps = Agg(akkaHttp, akkaHttpSprayJson)
+  override def ivyDeps = Agg(akkaHttp, akkaHttpSprayJson, akkaPersistenceQuery)
   object test extends TestsBase {
     override def moduleDeps = super.moduleDeps ++ Seq(domain.test)
     override def moreIvyDeps = Agg(akkaHttpTestKit)
