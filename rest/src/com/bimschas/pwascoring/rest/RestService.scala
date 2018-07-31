@@ -1,5 +1,8 @@
 package com.bimschas.pwascoring.rest
 
+import java.time.LocalTime
+
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.Http
@@ -10,6 +13,7 @@ import akka.http.scaladsl.server.ExceptionHandler
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Source
 import com.bimschas.pwascoring.ContestService
 import com.bimschas.pwascoring.HeatService
 import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
@@ -29,6 +33,11 @@ import com.bimschas.pwascoring.domain.WaveScore
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.concurrent.duration.DurationLong
+import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
+import java.time.format.DateTimeFormatter.ISO_LOCAL_TIME
+import akka.http.scaladsl.model.sse.ServerSentEvent
+
 import scala.util.control.NoStackTrace
 
 case class RestServiceConfig(hostname: String, port: Int)
@@ -55,6 +64,7 @@ case class RestService(
     val putHeats           = put  & path("contest" / "heats")
     val getHeats           = get  & path("contest" / "heats")
     val putHeat            = put  & path("contest" / "heats" / HeatIdSegment)
+    val getHeat            = get  & path("contest" / "heats" / HeatIdSegment)
     val getHeatContestants = get  & path("contest" / "heats" / HeatIdSegment / "contestants")
     val getHeatScoreSheets = get  & path("contest" / "heats" / HeatIdSegment / "scoreSheets")
     val postHeatWaveScore  = post & path("contest" / "heats" / HeatIdSegment / "waveScores" / RiderIdSegment)
@@ -102,6 +112,17 @@ case class RestService(
       onSuccess(contestService.heats()) {
         case Left(ContestNotPlanned) => failWith(ContestNotPlannedException)
         case Right(heatIds) => complete(heatIds)
+      }
+    } ~
+    getHeat { heatId =>
+      get {
+        complete {
+          Source
+            .tick(2.seconds, 2.seconds, NotUsed)
+            .map(_ => LocalTime.now())
+            .map(time => ServerSentEvent(ISO_LOCAL_TIME.format(time)))
+            .keepAlive(1.second, () => ServerSentEvent.heartbeat)
+        }
       }
     } ~
     putHeat { heatId =>
