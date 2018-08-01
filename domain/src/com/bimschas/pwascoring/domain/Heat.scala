@@ -14,14 +14,15 @@ import com.bimschas.pwascoring.domain.Heat.StartHeatError
 
 final case class Heat(
   heatId: HeatId,
+  rules: Option[HeatRules],
   scoreSheets: Option[ScoreSheets],
   started: Boolean,
   ended: Boolean
 ) {
 
-  def planHeat(contestants: HeatContestants): Either[PlanHeatError, HeatPlannedEvent] = {
+  def planHeat(contestants: HeatContestants, rules: HeatRules): Either[PlanHeatError, HeatPlannedEvent] = {
     if (scoreSheets.isDefined) Left(HeatAlreadyPlanned)
-    else Right(HeatPlannedEvent(heatId, contestants))
+    else Right(HeatPlannedEvent(heatId, contestants, rules))
   }
 
   def startHeat(): Either[StartHeatError, HeatStartedEvent] = {
@@ -52,7 +53,7 @@ final case class Heat(
 
   def handleEvent(event: HeatEvent): Heat = {
     event match {
-      case HeatPlannedEvent(_, contestants) => copy(scoreSheets = Some(ScoreSheets(contestants)))
+      case HeatPlannedEvent(_, contestants, planRules) => copy(scoreSheets = Some(ScoreSheets(contestants)), rules = Some(planRules))
       case HeatStartedEvent(_) => copy(started = true)
       case JumpScoredEvent(_, riderId, jumpScore) => this + (riderId, jumpScore)
       case WaveScoredEvent(_, riderId, waveScore) => this + (riderId, waveScore)
@@ -85,5 +86,5 @@ object Heat {
   case class RiderIdUnknown(riderId: RiderId) extends ScoreJumpError with ScoreWaveError
 
   def apply(heatId: HeatId): Heat =
-    Heat(heatId = heatId, scoreSheets = None, started = false, ended = false)
+    Heat(heatId = heatId, rules = None, scoreSheets = None, started = false, ended = false)
 }

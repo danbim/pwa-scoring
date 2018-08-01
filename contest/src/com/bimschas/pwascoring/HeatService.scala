@@ -21,6 +21,7 @@ import com.bimschas.pwascoring.domain.Heat.StartHeatError
 import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatEndedEvent
 import com.bimschas.pwascoring.domain.HeatPlannedEvent
+import com.bimschas.pwascoring.domain.HeatRules
 import com.bimschas.pwascoring.domain.HeatStartedEvent
 import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.JumpScoredEvent
@@ -34,7 +35,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 trait HeatService {
-  def planHeat(contestants: HeatContestants): Future[Either[PlanHeatError, HeatPlannedEvent]]
+  def planHeat(contestants: HeatContestants, rules: HeatRules): Future[Either[PlanHeatError, HeatPlannedEvent]]
   def contestants(): Future[Either[HeatNotPlanned.type, HeatContestants]]
   def scoreSheets(): Future[Either[HeatNotPlanned.type, ScoreSheets]]
   def startHeat(): Future[Either[StartHeatError, HeatStartedEvent]]
@@ -46,8 +47,8 @@ trait HeatService {
 case class ActorBasedHeatService(heatEntity: EntityRef[HeatCommand])(implicit scheduler: Scheduler, ec: ExecutionContext) extends HeatService {
   private implicit val timeout: Timeout = Timeout(30.seconds)
 
-  override def planHeat(contestants: HeatContestants): Future[Either[PlanHeatError, HeatPlannedEvent]] =
-    heatEntity ? (ref => PlanHeat(contestants, ref))
+  override def planHeat(contestants: HeatContestants, rules: HeatRules): Future[Either[PlanHeatError, HeatPlannedEvent]] =
+    heatEntity ? (ref => PlanHeat(contestants, rules, ref))
 
   override def contestants(): Future[Either[HeatNotPlanned.type, HeatContestants]] =
     heatEntity ? (ref => GetContestants(ref))

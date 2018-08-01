@@ -20,6 +20,7 @@ import com.bimschas.pwascoring.HeatService
 import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
 import com.bimschas.pwascoring.domain.Contest.ContestNotPlanned
 import com.bimschas.pwascoring.domain.Contest.HeatIdUnknown
+import com.bimschas.pwascoring.domain.Heat
 import com.bimschas.pwascoring.domain.Heat.HeatAlreadyEnded
 import com.bimschas.pwascoring.domain.Heat.HeatAlreadyPlanned
 import com.bimschas.pwascoring.domain.Heat.HeatAlreadyStarted
@@ -119,7 +120,12 @@ case class RestService(
           val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
           persistenceQuery
             .eventsByPersistenceId(heatId.entityId, 0L, Long.MaxValue)
-            .map(event => ServerSentEvent(event.toString))
+            .map(_.event)
+            .collectType[HeatEvent]
+            .map(heatEvent => heatEvent)
+            .scan(Heat(heatId))((heat, heatEvent) => heat.handleEvent(heatEvent))
+            .map(heat => HeatLiveStreamState.apply(heat))
+            .map(heatLiveStreamState => ServerSentEvent(asJson(heatLiveStreamState).toString()))
             .keepAlive(10.seconds, () => ServerSentEvent.heartbeat)
         }
       }
@@ -134,12 +140,12 @@ case class RestService(
             .map { envelope =>
               val heatEvent = envelope.event.asInstanceOf[HeatEvent]
               ServerSentEvent(
-                data = toJson(heatEvent).toString(),
+                data = asJson(heatEvent).toString(),
                 `type` = heatEvent.getClass.getSimpleName,
                 id = envelope.sequenceNr.toString
               )
             }
-            .keepAlive(1.second, () => ServerSentEvent.heartbeat)
+            .keepAlive(10.seconds, () => ServerSentEvent.heartbeat)
         }
       }
     } ~
@@ -161,8 +167,8 @@ case class RestService(
           }
         }
         else {
-          entity(as[HeatContestants]) { contestants =>
-            withExistingHeat(heatId)(_.planHeat(contestants)) {
+          entity(as[HeatSpec]) { heatSpec =>
+            withExistingHeat(heatId)(_.planHeat(heatSpec.contestants, heatSpec.rules)) {
               case Left(HeatAlreadyPlanned) => failWith(HeatAlreadyPlannedException(heatId))
               case Right(_) => complete(OK)
             }

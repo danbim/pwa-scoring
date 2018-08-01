@@ -17,6 +17,7 @@ import com.bimschas.pwascoring.domain.HeatEndedEvent
 import com.bimschas.pwascoring.domain.HeatEvent
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.HeatPlannedEvent
+import com.bimschas.pwascoring.domain.HeatRules
 import com.bimschas.pwascoring.domain.HeatStartedEvent
 import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.JumpScoredEvent
@@ -34,7 +35,7 @@ object HeatActor {
   sealed trait HeatCommand
 
   type PlanHeatResponse = Either[PlanHeatError, HeatPlannedEvent]
-  case class PlanHeat(contestants: HeatContestants, replyTo: ActorRef[PlanHeatResponse]) extends HeatCommand
+  case class PlanHeat(contestants: HeatContestants, rules: HeatRules, replyTo: ActorRef[PlanHeatResponse]) extends HeatCommand
 
   type StartHeatResponse = Either[StartHeatError, HeatStartedEvent]
   case class StartHeat(replyTo: ActorRef[StartHeatResponse]) extends HeatCommand
@@ -82,8 +83,8 @@ object HeatActor {
   private lazy val commandHandler: CommandHandler[HeatCommand, HeatEvent, Heat] =
     (_, state, command) => command match {
 
-      case PlanHeat(contestants, replyTo) =>
-        state.planHeat(contestants) match {
+      case PlanHeat(contestants, rules, replyTo) =>
+        state.planHeat(contestants, rules) match {
           case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
           case Right(heatPlannedEvent) =>
             Effect.persist(heatPlannedEvent).andThen { _ =>
