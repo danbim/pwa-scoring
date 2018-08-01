@@ -1,6 +1,9 @@
 // build.sc
 import mill._
+import mill.define.Target
+import mill.scalajslib.ScalaJSModule
 import mill.scalalib._
+import mill.util.Loose
 
 object Dependencies {
 
@@ -12,6 +15,9 @@ object Dependencies {
     val scalaTestVersion = "3.0.5"
     val scalaCheckVersion = "1.14.0"
     val sprayJsonVersion = "1.3.4"
+
+    val scalaJsVersion = "0.6.24"
+    val scalaJsDomVersion = "0.9.6"
   }
 
   import Versions._
@@ -33,6 +39,8 @@ object Dependencies {
   val sprayJson = ivy"io.spray::spray-json:$sprayJsonVersion"
 
   val levelDb = ivy"org.fusesource.leveldbjni:leveldbjni-all:1.8"
+
+  val scalaJsDom = ivy"org.scala-js::scalajs-dom:$scalaJsDomVersion"
 }
 
 def compile = T {
@@ -86,6 +94,15 @@ object rest extends ScalaModuleBase {
     override def moduleDeps = super.moduleDeps ++ Seq(domain.test)
     override def moreIvyDeps = Agg(akkaHttpTestKit)
   }
+}
+
+object viewer extends ScalaJSModule {
+  import Dependencies._
+  import Dependencies.Versions._
+
+  override def scalaVersion = scalaVersion
+  override def scalaJSVersion = scalaJsVersion
+  //override def ivyDeps = Agg(scalaJsDom)
 }
 
 object app extends ScalaModuleBase {
