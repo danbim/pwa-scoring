@@ -14,9 +14,6 @@ import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.persistence.query.PersistenceQuery
 import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import akka.stream.ActorMaterializer
-import com.bimschas.pwascoring.ContestService
-import com.bimschas.pwascoring.HeatIdOps
-import com.bimschas.pwascoring.HeatService
 import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
 import com.bimschas.pwascoring.domain.Contest.ContestNotPlanned
 import com.bimschas.pwascoring.domain.Contest.HeatIdUnknown
@@ -27,12 +24,14 @@ import com.bimschas.pwascoring.domain.Heat.HeatAlreadyStarted
 import com.bimschas.pwascoring.domain.Heat.HeatNotPlanned
 import com.bimschas.pwascoring.domain.Heat.HeatNotStarted
 import com.bimschas.pwascoring.domain.Heat.RiderIdUnknown
-import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatEvent
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.WaveScore
+import com.bimschas.pwascoring.service.ContestService
+import com.bimschas.pwascoring.service.HeatIdOps
+import com.bimschas.pwascoring.service.HeatService
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future

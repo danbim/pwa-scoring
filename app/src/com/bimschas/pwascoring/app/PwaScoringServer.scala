@@ -3,9 +3,9 @@ package com.bimschas.pwascoring.app
 import akka.actor.Scheduler
 import akka.stream.ActorMaterializer
 import akka.{actor => untyped}
-import com.bimschas.pwascoring.ActorBasedContestService
 import com.bimschas.pwascoring.rest.RestService
 import com.bimschas.pwascoring.rest.RestServiceConfig
+import com.bimschas.pwascoring.service.ActorBasedContestService
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext

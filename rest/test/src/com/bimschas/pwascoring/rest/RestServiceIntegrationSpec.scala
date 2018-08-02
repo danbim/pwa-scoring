@@ -8,16 +8,14 @@ import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.testkit.TestKitBase
-import com.bimschas.pwascoring.ActorBasedContestService
 import com.bimschas.pwascoring.domain.Generators
 import com.bimschas.pwascoring.domain.HeatId
+import com.bimschas.pwascoring.service.ActorBasedContestService
 import org.scalacheck.Gen
 import org.scalatest.Matchers
 import org.scalatest.WordSpecLike
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.prop.PropertyChecks
-
-import scala.concurrent.Future
 
 class RestServiceIntegrationSpec extends WordSpecLike
   with Matchers

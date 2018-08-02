@@ -1,4 +1,4 @@
-package com.bimschas.pwascoring
+package com.bimschas.pwascoring.service
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
@@ -11,8 +11,6 @@ import akka.cluster.sharding.typed.scaladsl.EntityRef
 import akka.persistence.typed.scaladsl.PersistentBehaviors
 import akka.persistence.typed.scaladsl.PersistentBehaviors.CommandHandler
 import akka.persistence.typed.scaladsl.PersistentBehaviors.Effect
-import com.bimschas.pwascoring.HeatActor.HeatCommand
-import com.bimschas.pwascoring.HeatActor.PassivateHeat
 import com.bimschas.pwascoring.domain.Contest
 import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
 import com.bimschas.pwascoring.domain.Contest.ContestNotPlanned
@@ -20,6 +18,8 @@ import com.bimschas.pwascoring.domain.Contest.HeatIdUnknown
 import com.bimschas.pwascoring.domain.ContestEvent
 import com.bimschas.pwascoring.domain.ContestPlannedEvent
 import com.bimschas.pwascoring.domain.HeatId
+import com.bimschas.pwascoring.service.HeatActor.HeatCommand
+import com.bimschas.pwascoring.service.HeatActor.PassivateHeat
 
 object ContestActor {
 

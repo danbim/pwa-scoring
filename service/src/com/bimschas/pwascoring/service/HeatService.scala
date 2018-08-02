@@ -1,20 +1,11 @@
-package com.bimschas.pwascoring
+package com.bimschas.pwascoring.service
 
 import akka.actor.Scheduler
 import akka.cluster.sharding.typed.scaladsl.EntityRef
 import akka.util.Timeout
-import com.bimschas.pwascoring.HeatActor.EndHeat
-import com.bimschas.pwascoring.HeatActor.GetContestants
-import com.bimschas.pwascoring.HeatActor.GetScoreSheets
-import com.bimschas.pwascoring.HeatActor.HeatCommand
-import com.bimschas.pwascoring.HeatActor.PlanHeat
-import com.bimschas.pwascoring.HeatActor.ScoreJump
-import com.bimschas.pwascoring.HeatActor.ScoreWave
-import com.bimschas.pwascoring.HeatActor.StartHeat
 import com.bimschas.pwascoring.domain.Heat.EndHeatError
 import com.bimschas.pwascoring.domain.Heat.HeatNotPlanned
 import com.bimschas.pwascoring.domain.Heat.PlanHeatError
-import com.bimschas.pwascoring.domain.Heat.RiderIdUnknown
 import com.bimschas.pwascoring.domain.Heat.ScoreJumpError
 import com.bimschas.pwascoring.domain.Heat.ScoreWaveError
 import com.bimschas.pwascoring.domain.Heat.StartHeatError
@@ -29,6 +20,14 @@ import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheets
 import com.bimschas.pwascoring.domain.WaveScore
 import com.bimschas.pwascoring.domain.WaveScoredEvent
+import com.bimschas.pwascoring.service.HeatActor.EndHeat
+import com.bimschas.pwascoring.service.HeatActor.GetContestants
+import com.bimschas.pwascoring.service.HeatActor.GetScoreSheets
+import com.bimschas.pwascoring.service.HeatActor.HeatCommand
+import com.bimschas.pwascoring.service.HeatActor.PlanHeat
+import com.bimschas.pwascoring.service.HeatActor.ScoreJump
+import com.bimschas.pwascoring.service.HeatActor.ScoreWave
+import com.bimschas.pwascoring.service.HeatActor.StartHeat
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future

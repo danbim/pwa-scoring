@@ -1,4 +1,4 @@
-package com.bimschas.pwascoring
+package com.bimschas.pwascoring.service
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior

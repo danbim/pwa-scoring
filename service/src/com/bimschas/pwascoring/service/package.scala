@@ -1,10 +1,10 @@
-package com.bimschas
+package com.bimschas.pwascoring
 
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
-import com.bimschas.pwascoring.HeatActor.HeatCommand
 import com.bimschas.pwascoring.domain.HeatId
+import com.bimschas.pwascoring.service.HeatActor.HeatCommand
 
-package object pwascoring {
+package object service {
 
   val HeatEntityTypeKey: EntityTypeKey[HeatCommand] = EntityTypeKey[HeatCommand]("Heat")
 

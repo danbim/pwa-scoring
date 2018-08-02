@@ -1,4 +1,4 @@
-package com.bimschas.pwascoring
+package com.bimschas.pwascoring.service
 
 import java.util.concurrent.atomic.AtomicInteger
 
