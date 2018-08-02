@@ -37,7 +37,7 @@ object Dependencies {
 
 def compile = T {
   domain.compile
-  contest.compile
+  service.compile
   rest.compile
   app.compile
 }
@@ -45,7 +45,7 @@ def compile = T {
 object test extends Module {
   def compile = T {
     domain.test.compile
-    contest.test.compile
+    service.test.compile
     rest.test.compile
     app.test.compile
   }
@@ -67,7 +67,7 @@ object domain extends ScalaModuleBase {
   object test extends TestsBase
 }
 
-object contest extends ScalaModuleBase {
+object service extends ScalaModuleBase {
   import Dependencies._
 
   override def moduleDeps = Seq(domain)
@@ -80,7 +80,7 @@ object contest extends ScalaModuleBase {
 object rest extends ScalaModuleBase {
   import Dependencies._
 
-  override def moduleDeps = Seq(domain, contest)
+  override def moduleDeps = Seq(domain, service)
   override def ivyDeps = Agg(akkaHttp, akkaHttpSprayJson, akkaPersistenceQuery)
   object test extends TestsBase {
     override def moduleDeps = super.moduleDeps ++ Seq(domain.test)
@@ -89,7 +89,7 @@ object rest extends ScalaModuleBase {
 }
 
 object app extends ScalaModuleBase {
-  override def moduleDeps = Seq(domain, contest, rest)
+  override def moduleDeps = Seq(domain, service, rest)
   override def mainClass = Some("com.bimschas.pwascoring.app.PwaScoringServer")
   object test extends TestsBase
 }
