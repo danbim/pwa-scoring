@@ -27,7 +27,7 @@ Technologies used include:
   * [Softwerkskammer Lübeck Meetup 07/2017](https://www.meetup.com/Softwerkskammer-Luebeck/events/250458021/)
   * [inoio](https://inoio.de)-internal knowledge transfer
 * Event Sourcing
-  * [Softwerkskammer Lübeck Meetup 08/2018](https://www.meetup.com/Softwerkskammer-Luebeck/events/gjsxslyxlbdb/)
+  * [Softwerkskammer Lübeck Meetup 08/2018](https://www.meetup.com/Softwerkskammer-Luebeck/events/gjsxslyxlbdb/): "Event Sourcing und CQRS am Beispiel" --> [Slides](https://t.co/4aY5Uyf9IV)
 * Property-based Testing with ScalaCheck
   * Softwerkskammer Lübeck Meetup
 * Akka Typed, Typed Cluster Sharding and Typed Persistence
