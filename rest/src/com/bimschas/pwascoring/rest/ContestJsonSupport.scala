@@ -32,8 +32,11 @@ trait ContestJsonSupport extends DomainJsonSupport with SprayJsonSupport {
     override def read(json: JsValue): ScoreSheets = ScoreSheets(mapFormat[RiderId, ScoreSheet].read(json))
   }
 
-  implicit lazy val heatLiveStreamState: RootJsonFormat[HeatLiveStreamState] =
-    jsonFormat6(HeatLiveStreamState.apply)
+  implicit lazy val heatLiveStreamRiderStateFormat: RootJsonFormat[HeatLiveStreamRiderState] =
+    jsonFormat2(HeatLiveStreamRiderState.apply)
+
+  implicit lazy val heatLiveStreamStateFormat: RootJsonFormat[HeatLiveStreamState] =
+    jsonFormat5(HeatLiveStreamState.apply)
 
   protected def asJson(heatStreamLiveState: HeatLiveStreamState): JsValue =
     implicitly[JsonWriter[HeatLiveStreamState]].write(heatStreamLiveState)
