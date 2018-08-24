@@ -74,6 +74,7 @@ object service extends ScalaModuleBase {
   override def ivyDeps = Agg(akkaActorTyped, akkaPersistenceTyped, akkaClusterShardingTyped, levelDb)
   object test extends TestsBase {
     override def moreIvyDeps: Agg[Dep] = Agg(akkaTestKitTyped)
+    override def moduleDeps: Seq[JavaModule] = super.moduleDeps ++ Seq(domain.test)
   }
 }
 

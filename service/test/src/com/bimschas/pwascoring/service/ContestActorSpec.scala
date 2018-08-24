@@ -1,63 +1,89 @@
 package com.bimschas.pwascoring.service
 
-import java.util.concurrent.atomic.AtomicInteger
-
-import akka.actor.typed.Props
-import akka.cluster.typed.ClusterSingleton
-import akka.cluster.typed.ClusterSingletonSettings
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.cluster.sharding.typed.scaladsl.EntityRef
 import akka.testkit.typed.scaladsl.ActorTestKit
+import akka.testkit.typed.scaladsl.TestProbe
+import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
+import com.bimschas.pwascoring.domain.ContestPlannedEvent
+import com.bimschas.pwascoring.domain.Heat.PlanHeatError
+import com.bimschas.pwascoring.domain.HeatContestants
 import com.bimschas.pwascoring.domain.HeatId
-import com.bimschas.pwascoring.domain.RiderId
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.Matchers
-import org.scalatest.OptionValues
-import org.scalatest.WordSpec
-import org.scalatest.concurrent.ScalaFutures
+import com.bimschas.pwascoring.domain.HeatPlannedEvent
+import com.bimschas.pwascoring.service.ContestActor.GetHeat
+import com.bimschas.pwascoring.service.ContestActor.GetHeatResponse
+import com.bimschas.pwascoring.service.ContestActor.PlanContest
+import com.bimschas.pwascoring.service.ContestActor.PlanContestResponse
+import com.bimschas.pwascoring.service.HeatActor.HeatCommand
+import com.bimschas.pwascoring.service.HeatActor.PlanHeat
+import com.bimschas.pwascoring.service.HeatActor.PlanHeatResponse
+import com.typesafe.config.Config
 
-object IdGenerator {
-  private val lastId = new AtomicInteger(0)
-  def nextId(): Int = lastId.incrementAndGet()
-}
+class ContestActorSpec extends SpecBase {
 
-//noinspection TypeAnnotation
-class ContestActorSpec extends WordSpec
-  with ActorTestKit
-  with BeforeAndAfterAll
-  with ScalaFutures
-  with OptionValues
-  with Matchers {
+  private implicit var system: ActorSystem[_] = _
+
+  override protected def beforeAll(): Unit =
+    system = TestActorSystem()
 
   override protected def afterAll(): Unit =
-    shutdownTestKit()
+    Option(system).foreach(_.terminate())
 
-  private abstract class ContestScenario {
-    protected val singletonManager = ClusterSingleton(system)
-    protected val contestActor = singletonManager.spawn(
-      behavior = ContestActor.behavior,
-      singletonName = "ContestActor",
-      props = Props.empty,
-      settings = ClusterSingletonSettings(system),
-      terminationMessage = ContestActor.PassivateContest
-    )
-    protected val heatId = {
-      val uniquePersistenceId = IdGenerator.nextId()
-      HeatId.parse(s"$uniquePersistenceId-a").get
+  object TestRunningHeatActor {
+
+    def apply(
+      contestActor: ActorRef[ContestActor.ContestCommand],
+      heatId: HeatId
+    )(implicit system: ActorSystem[_]): EntityRef[HeatCommand] = {
+
+      // plan contest
+      val planContestProbe = TestProbe[PlanContestResponse]()
+      contestActor ! PlanContest(Set(heatId), planContestProbe.ref)
+      planContestProbe.expectMessageType[Right[ContestAlreadyPlanned.type, ContestPlannedEvent]]
+
+      // retrieve heat ActorRef
+      val getHeatProbe = TestProbe[GetHeatResponse]()
+      contestActor ! GetHeat(heatId, getHeatProbe.ref)
+      getHeatProbe.expectMessageType[GetHeatResponse].right.value
     }
-
-    protected val graham = RiderId(sailNr = "USA-1")
-    protected val julian = RiderId(sailNr = "G-901")
-
-    /*protected val contestants = HeatContestants(List(graham, julian))
-    protected val probe = TestProbe[Either[ContestAlreadyPlanned, ContestPlanned]]()*/
   }
 
-  // TODO shouldn't we shut down the singleton manager after each test?
+  "ContestActor" when {
+    "sent a PlanHeat command" must {
+      "plan the heat" in {
 
-  "Contest" when {
+        // GIVEN
+        val contestActor = TestContestActor(system)
+        val heatId = sample(heatIdGen)
+        val heatActor = TestRunningHeatActor(contestActor, heatId)
+        val heatRiderIds = sample(nonEmptySmallSetGen(riderIdGen))
+        val heatContestants = HeatContestants(heatRiderIds)
+        val heatRules = sample(heatRulesGen)
+
+        // WHEN
+        val planHeatProbe = TestProbe[PlanHeatResponse]()
+        heatActor ! PlanHeat(heatContestants, heatRules, planHeatProbe.ref)
+
+        // THEN
+        val heatPlannedEvent = planHeatProbe.expectMessageType[Right[PlanHeatError, HeatPlannedEvent]].value
+        heatPlannedEvent.heatId shouldBe heatId
+        heatPlannedEvent.contestants shouldBe heatContestants
+        heatPlannedEvent.rules shouldBe heatRules
+      }
+    }
+  }
+}
+
 /*
     "sent a StartHeat command" must {
       "start the heat if heat is not yet running" in {
-        new ContestScenario {
+        withResources(TestContestActor()) { contestActor =>
+
+          val heatId = sample(heatIdGen)
+          val heatActor = TestRunningHeatActor(contestActor, heatId)
+
+          heatActor ! PlanHeat
           contestActor ! StartHeat(heatId, contestants, probe.ref)
           probe.expectMessageType[Right[ContestAlreadyPlanned, ContestPlanned]]
         }
@@ -72,6 +98,8 @@ class ContestActorSpec extends WordSpec
         }
       }
     }
+*/
+/*
     "being restartet" must {
       "remember all scores" in {
         new ContestScenario {
@@ -136,5 +164,3 @@ class ContestActorSpec extends WordSpec
       }
     }
 */
-  }
-}

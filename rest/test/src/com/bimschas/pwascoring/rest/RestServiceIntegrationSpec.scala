@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.testkit.TestKitBase
-import com.bimschas.pwascoring.domain.Generators
+import com.bimschas.pwascoring.domain.DomainGenerators
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.service.ActorBasedContestService
 import org.scalacheck.Gen
@@ -20,7 +20,7 @@ import org.scalatest.prop.PropertyChecks
 class RestServiceIntegrationSpec extends WordSpecLike
   with Matchers
   with ScalatestRouteTest
-  with Generators
+  with DomainGenerators
   with PropertyChecks
   with ContestJsonSupport
   with ScalaFutures
@@ -45,7 +45,7 @@ class RestServiceIntegrationSpec extends WordSpecLike
   "RestService" when {
     "PUT /contest/heats is called" must {
       "plan a contest" in {
-        forAll(Gen.containerOfN[Set, HeatId](5, heatIdGen)) { heatIds: Set[HeatId] =>
+        forAll(nonEmptySmallSetGen(heatIdGen)) { heatIds: Set[HeatId] =>
           new RunningRestService(heatIds) {
             putHeatIds(heatIds) ~> check {
               handled shouldBe true

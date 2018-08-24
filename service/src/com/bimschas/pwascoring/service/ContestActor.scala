@@ -1,6 +1,7 @@
 package com.bimschas.pwascoring.service
 
 import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.Props
 import akka.actor.typed.scaladsl.ActorContext
@@ -8,6 +9,8 @@ import akka.cluster.sharding.typed.ClusterShardingSettings
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.cluster.sharding.typed.scaladsl.EntityRef
+import akka.cluster.typed.ClusterSingleton
+import akka.cluster.typed.ClusterSingletonSettings
 import akka.persistence.typed.scaladsl.PersistentBehaviors
 import akka.persistence.typed.scaladsl.PersistentBehaviors.CommandHandler
 import akka.persistence.typed.scaladsl.PersistentBehaviors.Effect
@@ -22,6 +25,20 @@ import com.bimschas.pwascoring.service.HeatActor.HeatCommand
 import com.bimschas.pwascoring.service.HeatActor.PassivateHeat
 
 object ContestActor {
+
+  //////////////////
+  // Constructors //
+  //////////////////
+
+  def apply(system: ActorSystem[_]): ActorRef[ContestCommand] = {
+    ClusterSingleton(system).spawn(
+      behavior = ContestActor.behavior,
+      singletonName = "ContestActor",
+      props = Props.empty,
+      settings = ClusterSingletonSettings(system),
+      terminationMessage = ContestActor.PassivateContest
+    )
+  }
 
   ////////////////////////////
   // Commands and Responses //

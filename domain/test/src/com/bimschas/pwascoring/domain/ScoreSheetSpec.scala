@@ -9,7 +9,7 @@ import scala.collection.immutable.List
 import scala.language.implicitConversions
 import scala.util.Random
 
-class ScoreSheetSpec extends WordSpecLike with Matchers with PropertyChecks with Generators {
+class ScoreSheetSpec extends WordSpecLike with Matchers with PropertyChecks with DomainGenerators {
 
   implicit val waveOrdering: Ordering[WaveScore] = WaveScore.AscendingOrdering
   implicit val jumpOrdering: Ordering[JumpScore] = JumpScore.AscendingOrdering
