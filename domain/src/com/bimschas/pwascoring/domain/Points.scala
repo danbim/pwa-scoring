@@ -2,7 +2,6 @@ package com.bimschas.pwascoring.domain
 
 import java.math.MathContext
 
-import scala.language.implicitConversions
 import scala.math.BigDecimal.RoundingMode
 
 case class Points private (value: BigDecimal) extends AnyVal {

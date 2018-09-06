@@ -13,7 +13,6 @@ import com.bimschas.pwascoring.domain.JumpScoredEvent
 import com.bimschas.pwascoring.domain.JumpType
 import com.bimschas.pwascoring.domain.Points
 import com.bimschas.pwascoring.domain.RiderId
-import com.bimschas.pwascoring.domain.Score
 import com.bimschas.pwascoring.domain.WaveScore
 import com.bimschas.pwascoring.domain.WaveScoredEvent
 import spray.json.DefaultJsonProtocol

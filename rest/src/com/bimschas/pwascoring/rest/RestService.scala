@@ -45,7 +45,7 @@ case class RestService(
 )(implicit system: ActorSystem, materializer: ActorMaterializer, ec: ExecutionContext) extends ContestJsonSupport {
 
   private lazy val bindingFuture: Future[Http.ServerBinding] =
-    Http().bindAndHandle(DebuggingDirectives.logRequestResult("REST", Logging.DebugLevel)(route), config.hostname, config.port)
+    Http().bindAndHandle(DebuggingDirectives.logRequestResult(("REST", Logging.DebugLevel))(route), config.hostname, config.port)
 
   //noinspection TypeAnnotation
   private object PathMatchers {
@@ -149,7 +149,7 @@ case class RestService(
       }
     } ~
     putHeat { heatId =>
-      parameter('startHeat.?, 'endHeat.?) { (startHeat, endHeat) =>
+      parameter(('startHeat.?, 'endHeat.?)) { (startHeat, endHeat) =>
         if (startHeat.isDefined && startHeat.contains("true")) {
           withExistingHeat(heatId)(_.startHeat()) {
             case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
@@ -223,8 +223,10 @@ case class RestService(
 
   def shutdown(): Future[Unit] = {
     println(s"Shutting down web service on http://${config.hostname}:${config.port}")
-    bindingFuture
-      .flatMap(_.unbind())
-      .map(_ => system.terminate())
+    for {
+      binding <- bindingFuture
+      _ <- binding.unbind()
+      _ <- system.terminate()
+    } yield ()
   }
 }

@@ -71,6 +71,7 @@ object ContestActor {
       eventHandler = eventHandler
     ).onRecoveryCompleted { (ctx, _) =>
       spawnShardRegion(ctx)
+      ()
     }
 
   ///////////////////

@@ -29,11 +29,10 @@ import com.bimschas.pwascoring.service.HeatActor.ScoreJump
 import com.bimschas.pwascoring.service.HeatActor.ScoreWave
 import com.bimschas.pwascoring.service.HeatActor.StartHeat
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
-case class ActorBasedHeatService(heatEntity: EntityRef[HeatCommand])(implicit scheduler: Scheduler, ec: ExecutionContext) extends HeatService {
+case class ActorBasedHeatService(heatEntity: EntityRef[HeatCommand])(implicit scheduler: Scheduler) extends HeatService {
 
   private implicit val timeout: Timeout = Timeout(30.seconds)
 
