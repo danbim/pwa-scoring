@@ -28,32 +28,51 @@ import com.bimschas.pwascoring.service.HeatActor.PlanHeat
 import com.bimschas.pwascoring.service.HeatActor.ScoreJump
 import com.bimschas.pwascoring.service.HeatActor.ScoreWave
 import com.bimschas.pwascoring.service.HeatActor.StartHeat
+import com.bimschas.pwascoring.service.HeatService.HeatServiceError
+import scalaz.zio.Callback
+import scalaz.zio.ExitResult.Completed
+import scalaz.zio.ExitResult.Failed
+import scalaz.zio.IO
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+import scala.util.Failure
+import scala.util.Success
 
 case class ActorBasedHeatService(heatEntity: EntityRef[HeatCommand])(implicit scheduler: Scheduler) extends HeatService {
 
   private implicit val timeout: Timeout = Timeout(30.seconds)
+  private implicit val ec: ExecutionContext = Implicits.global
 
-  override def planHeat(contestants: HeatContestants, rules: HeatRules): Future[Either[PlanHeatError, HeatPlannedEvent]] =
-    heatEntity ? (ref => PlanHeat(contestants, rules, ref))
+  override def planHeat(contestants: HeatContestants, rules: HeatRules): IO[Either[HeatServiceError, PlanHeatError], HeatPlannedEvent] =
+    io(heatEntity ? (ref => PlanHeat(contestants, rules, ref)))
 
-  override def contestants(): Future[Either[HeatNotPlanned.type, HeatContestants]] =
-    heatEntity ? (ref => GetContestants(ref))
+  override def contestants(): IO[Either[HeatServiceError, HeatNotPlanned.type], HeatContestants] =
+    io(heatEntity ? (ref => GetContestants(ref)))
 
-  override def scoreSheets(): Future[Either[HeatNotPlanned.type, ScoreSheets]] =
-    heatEntity ? (ref => GetScoreSheets(ref))
+  override def scoreSheets(): IO[Either[HeatServiceError, HeatNotPlanned.type], ScoreSheets] =
+    io(heatEntity ? (ref => GetScoreSheets(ref)))
 
-  override def startHeat(): Future[Either[StartHeatError, HeatStartedEvent]] =
-    heatEntity ? (ref => StartHeat(ref))
+  override def startHeat(): IO[Either[HeatServiceError, StartHeatError], HeatStartedEvent] =
+    io(heatEntity ? (ref => StartHeat(ref)))
 
-  override def score(riderId: RiderId, waveScore: WaveScore): Future[Either[ScoreWaveError, WaveScoredEvent]] =
-    heatEntity ? (ref => ScoreWave(riderId, waveScore, ref))
+  override def score(riderId: RiderId, waveScore: WaveScore): IO[Either[HeatServiceError, ScoreWaveError], WaveScoredEvent] =
+    io(heatEntity ? (ref => ScoreWave(riderId, waveScore, ref)))
 
-  override def score(riderId: RiderId, jumpScore: JumpScore): Future[Either[ScoreJumpError, JumpScoredEvent]] =
-    heatEntity ? (ref => ScoreJump(riderId, jumpScore, ref))
+  override def score(riderId: RiderId, jumpScore: JumpScore): IO[Either[HeatServiceError, ScoreJumpError], JumpScoredEvent] =
+    io(heatEntity ? (ref => ScoreJump(riderId, jumpScore, ref)))
 
-  override def endHeat(): Future[Either[EndHeatError, HeatEndedEvent]] =
-    heatEntity ? (ref => EndHeat(ref))
+  override def endHeat(): IO[Either[HeatServiceError, EndHeatError], HeatEndedEvent] =
+    io(heatEntity ? (ref => EndHeat(ref)))
+
+  private def io[E, T](op: => Future[Either[E, T]]): IO[Either[HeatServiceError, E], T] =
+    IO.async { callback: Callback[Either[HeatServiceError, E], T] =>
+      op onComplete {
+        case Success(Left(e)) => callback(Failed(Right(e)))
+        case Success(Right(v)) => callback(Completed(v))
+        case Failure(t) => callback(Failed(Left(HeatServiceError(t))))
+      }
+    }
 }

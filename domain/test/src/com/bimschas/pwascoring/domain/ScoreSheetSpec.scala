@@ -6,7 +6,6 @@ import org.scalatest.WordSpecLike
 import org.scalatest.prop.PropertyChecks
 
 import scala.collection.immutable.List
-import scala.language.implicitConversions
 import scala.util.Random
 
 class ScoreSheetSpec extends WordSpecLike with Matchers with PropertyChecks with DomainGenerators {
@@ -52,7 +51,7 @@ class ScoreSheetSpec extends WordSpecLike with Matchers with PropertyChecks with
 
       forAll(scoreSheetInputGen) { case ScoreSheetInput(heatRules, countingWaveScores, countingJumpScores, nonCountingWaveScores, nonCountingJumpScores) =>
 
-        countingJumpScores.map(_.jumpType).toSet should have size countingJumpScores.size // only one scoring jump per jumpType allowed
+        countingJumpScores.map(_.jumpType).toSet should have size countingJumpScores.size.toLong // only one scoring jump per jumpType allowed
 
         if (nonCountingWaveScores.nonEmpty) nonCountingWaveScores.max should be <= countingWaveScores.min
         if (nonCountingJumpScores.nonEmpty) nonCountingJumpScores.max should be <= countingJumpScores.min

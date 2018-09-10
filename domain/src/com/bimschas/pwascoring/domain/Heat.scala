@@ -70,11 +70,12 @@ final case class Heat(
 
 object Heat {
 
-  sealed trait PlanHeatError
-  sealed trait StartHeatError
-  sealed trait ScoreJumpError
-  sealed trait ScoreWaveError
-  sealed trait EndHeatError
+  sealed trait HeatError
+  sealed trait PlanHeatError extends HeatError
+  sealed trait StartHeatError extends HeatError
+  sealed trait ScoreJumpError extends HeatError
+  sealed trait ScoreWaveError extends HeatError
+  sealed trait EndHeatError extends HeatError
 
   case object HeatAlreadyPlanned extends PlanHeatError
   case object HeatAlreadyStarted extends StartHeatError

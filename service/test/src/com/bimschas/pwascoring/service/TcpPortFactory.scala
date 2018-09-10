@@ -28,7 +28,7 @@ class TcpPortFactory(firstPort: Int, count: Int, maxRetries: Int) {
         serverSocket.bind(new InetSocketAddress(hostname, port))
         true
       } catch {
-        case e: IOException => false // port probably already in use
+        case _: IOException => false // port probably already in use
       } finally serverSocket.close()
     }
 

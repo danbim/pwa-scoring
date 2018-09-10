@@ -3,7 +3,6 @@ package com.bimschas.pwascoring.service
 import akka.actor.typed.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.EntityRef
-import akka.testkit.typed.scaladsl.ActorTestKit
 import akka.testkit.typed.scaladsl.TestProbe
 import com.bimschas.pwascoring.domain.Contest.ContestAlreadyPlanned
 import com.bimschas.pwascoring.domain.ContestPlannedEvent
@@ -18,7 +17,6 @@ import com.bimschas.pwascoring.service.ContestActor.PlanContestResponse
 import com.bimschas.pwascoring.service.HeatActor.HeatCommand
 import com.bimschas.pwascoring.service.HeatActor.PlanHeat
 import com.bimschas.pwascoring.service.HeatActor.PlanHeatResponse
-import com.typesafe.config.Config
 
 class ContestActorSpec extends SpecBase {
 

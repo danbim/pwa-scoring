@@ -13,6 +13,7 @@ object Dependencies {
     val scalaTestVersion = "3.0.5"
     val scalaCheckVersion = "1.14.0"
     val sprayJsonVersion = "1.3.4"
+    val zioVersion = "0.2.7"
   }
 
   import Versions._
@@ -34,6 +35,7 @@ object Dependencies {
   val sprayJson = ivy"io.spray::spray-json:$sprayJsonVersion"
 
   val levelDb = ivy"org.fusesource.leveldbjni:leveldbjni-all:1.8"
+  val zio = ivy"org.scalaz::scalaz-zio:0.2.7"
 }
 
 def compile = T {
@@ -113,7 +115,7 @@ object service extends ScalaModuleBase {
   import Dependencies._
 
   override def moduleDeps = Seq(domain)
-  override def ivyDeps = Agg(akkaActorTyped, akkaPersistenceTyped, akkaClusterShardingTyped, levelDb)
+  override def ivyDeps = Agg(akkaActorTyped, akkaPersistenceTyped, akkaClusterShardingTyped, levelDb, zio)
   object test extends TestsBase {
     override def moreIvyDeps: Agg[Dep] = Agg(akkaTestKitTyped)
     override def moduleDeps: Seq[JavaModule] = super.moduleDeps ++ Seq(domain.test)

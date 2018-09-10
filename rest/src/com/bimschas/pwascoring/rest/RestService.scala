@@ -32,6 +32,10 @@ import com.bimschas.pwascoring.domain.WaveScore
 import com.bimschas.pwascoring.service.ContestService
 import com.bimschas.pwascoring.service.HeatIdOps
 import com.bimschas.pwascoring.service.HeatService
+import com.bimschas.pwascoring.service.HeatService.HeatServiceError
+import scalaz.zio.ExitResult
+import scalaz.zio.IO
+import scalaz.zio.RTS
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -42,7 +46,7 @@ case class RestServiceConfig(hostname: String, port: Int)
 
 case class RestService(
   config: RestServiceConfig, contestService: ContestService
-)(implicit system: ActorSystem, materializer: ActorMaterializer, ec: ExecutionContext) extends ContestJsonSupport {
+)(implicit system: ActorSystem, materializer: ActorMaterializer, ec: ExecutionContext) extends ContestJsonSupport with RTS {
 
   private lazy val bindingFuture: Future[Http.ServerBinding] =
     Http().bindAndHandle(DebuggingDirectives.logRequestResult(("REST", Logging.DebugLevel))(route), config.hostname, config.port)
@@ -152,24 +156,27 @@ case class RestService(
       parameter(('startHeat.?, 'endHeat.?)) { (startHeat, endHeat) =>
         if (startHeat.isDefined && startHeat.contains("true")) {
           withExistingHeat(heatId)(_.startHeat()) {
-            case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
-            case Left(HeatAlreadyStarted) => failWith(HeatAlreadyStartedException(heatId))
-            case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
-            case Right(_) => complete(OK)
+            case HeatNotPlanned => failWith(HeatNotPlannedException(heatId))
+            case HeatAlreadyStarted => failWith(HeatAlreadyStartedException(heatId))
+            case HeatAlreadyEnded => failWith(HeatAlreadyEndedException(heatId))
+          }{ _ =>
+            complete(OK)
           }
         }
         else if (endHeat.isDefined && endHeat.contains("true")) {
           withExistingHeat(heatId)(_.endHeat()) {
-            case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
-            case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
-            case Right(_) => complete(OK)
+            case HeatNotStarted => failWith(HeatNotStartedException(heatId))
+            case HeatAlreadyEnded => failWith(HeatAlreadyEndedException(heatId))
+          }{ _ =>
+            complete(OK)
           }
         }
         else {
           entity(as[HeatSpec]) { heatSpec =>
             withExistingHeat(heatId)(_.planHeat(heatSpec.contestants, heatSpec.rules)) {
-              case Left(HeatAlreadyPlanned) => failWith(HeatAlreadyPlannedException(heatId))
-              case Right(_) => complete(OK)
+              case HeatAlreadyPlanned => failWith(HeatAlreadyPlannedException(heatId))
+            } { _ =>
+              complete(OK)
             }
           }
         }
@@ -177,43 +184,69 @@ case class RestService(
     } ~
     getHeatContestants { heatId =>
       withExistingHeat(heatId)(_.contestants()) {
-        case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
-        case Right(contestants) => complete(contestants)
+        case HeatNotPlanned => failWith(HeatNotPlannedException(heatId))
+      } { contestants =>
+        complete(contestants)
       }
     } ~
     getHeatScoreSheets { heatId =>
       withExistingHeat(heatId)(_.scoreSheets()) {
-        case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
-        case Right(scoreSheets) => complete(scoreSheets)
+        case HeatNotPlanned => failWith(HeatNotPlannedException(heatId))
+      } { scoreSheets =>
+        complete(scoreSheets)
       }
     } ~
     postHeatWaveScore { case (heatId, riderId) =>
       entity(as[WaveScore]) { waveScore =>
         withExistingHeat(heatId)(_.score(riderId, waveScore)) {
-          case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
-          case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
-          case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
-          case Right(_) => complete(OK)
+          case HeatNotStarted => failWith(HeatNotStartedException(heatId))
+          case HeatAlreadyEnded => failWith(HeatAlreadyEndedException(heatId))
+          case RiderIdUnknown(id) => failWith(RiderIdUnknownException(id))
+        } { _ =>
+          complete(OK)
         }
       }
     } ~
     postHeatJumpScore { case (heatId, riderId) =>
       entity(as[JumpScore]) { jumpScore =>
         withExistingHeat(heatId)(_.score(riderId, jumpScore)) {
-          case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
-          case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
-          case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
-          case Right(_) => complete(OK)
+          case HeatNotStarted => failWith(HeatNotStartedException(heatId))
+          case HeatAlreadyEnded => failWith(HeatAlreadyEndedException(heatId))
+          case RiderIdUnknown(id) => failWith(RiderIdUnknownException(id))
+        } { _ =>
+          complete(OK)
         }
       }
     }
   }
 
-  private def withExistingHeat[T, R](heatId: HeatId)(onHeatService: HeatService => Future[R])(toRoute: R => Route): Route = {
+  private def withExistingHeat[E, V](heatId: HeatId)
+    (onHeatService: HeatService => IO[Either[HeatServiceError, E], V])
+    (errToRoute: E => Route)
+    (valueToRoute: V => Route): Route = {
     onSuccess(contestService.heat(heatId)) {
       case Left(HeatIdUnknown(id)) => failWith(HeatIdUnknownException(id))
       case Right(heatService) =>
-        onSuccess(onHeatService(heatService))(resp => toRoute(resp))
+        unsafeRunSync(onHeatService(heatService).attempt) match {
+
+          case ExitResult.Completed(Left(Left(HeatServiceError(cause)))) =>
+            println(cause)
+            complete(HttpResponse(StatusCodes.InternalServerError, entity = "Heat Service currently not available"))
+
+          case ExitResult.Completed(Left(Right(err))) =>
+            errToRoute(err)
+
+          case ExitResult.Completed(Right(resp)) =>
+            valueToRoute(resp)
+
+          case ExitResult.Failed(_, defects) =>
+            defects.foreach(println)
+            complete(HttpResponse(StatusCodes.InternalServerError, entity = "Internal server error"))
+
+          case ExitResult.Terminated(causes) =>
+            causes.foreach(println)
+            complete(HttpResponse(StatusCodes.InternalServerError, entity = "Internal server error"))
+        }
     }
   }
 

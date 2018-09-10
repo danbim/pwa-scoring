@@ -17,15 +17,21 @@ import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheets
 import com.bimschas.pwascoring.domain.WaveScore
 import com.bimschas.pwascoring.domain.WaveScoredEvent
+import com.bimschas.pwascoring.service.HeatService.HeatServiceError
+import scalaz.zio.IO
 
-import scala.concurrent.Future
+import scala.util.control.NoStackTrace
 
 trait HeatService {
-  def planHeat(contestants: HeatContestants, rules: HeatRules): Future[Either[PlanHeatError, HeatPlannedEvent]]
-  def contestants(): Future[Either[HeatNotPlanned.type, HeatContestants]]
-  def scoreSheets(): Future[Either[HeatNotPlanned.type, ScoreSheets]]
-  def startHeat(): Future[Either[StartHeatError, HeatStartedEvent]]
-  def score(riderId: RiderId, waveScore: WaveScore): Future[Either[ScoreWaveError, WaveScoredEvent]]
-  def score(riderId: RiderId, jumpScore: JumpScore): Future[Either[ScoreJumpError, JumpScoredEvent]]
-  def endHeat(): Future[Either[EndHeatError, HeatEndedEvent]]
+  def planHeat(contestants: HeatContestants, rules: HeatRules): IO[Either[HeatServiceError, PlanHeatError], HeatPlannedEvent]
+  def contestants(): IO[Either[HeatServiceError, HeatNotPlanned.type], HeatContestants]
+  def scoreSheets(): IO[Either[HeatServiceError, HeatNotPlanned.type], ScoreSheets]
+  def startHeat(): IO[Either[HeatServiceError, StartHeatError], HeatStartedEvent]
+  def score(riderId: RiderId, waveScore: WaveScore): IO[Either[HeatServiceError, ScoreWaveError], WaveScoredEvent]
+  def score(riderId: RiderId, jumpScore: JumpScore): IO[Either[HeatServiceError, ScoreJumpError], JumpScoredEvent]
+  def endHeat(): IO[Either[HeatServiceError, EndHeatError], HeatEndedEvent]
+}
+
+object HeatService {
+  case class HeatServiceError(cause: Throwable) extends Exception with NoStackTrace
 }
