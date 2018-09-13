@@ -29,6 +29,7 @@ import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.domain.JumpScore
 import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.WaveScore
+import com.bimschas.pwascoring.rest.RestService.log
 import com.bimschas.pwascoring.service.ContestService
 import com.bimschas.pwascoring.service.HeatIdOps
 import com.bimschas.pwascoring.service.HeatService
@@ -43,6 +44,10 @@ import scala.concurrent.duration.DurationLong
 import scala.util.control.NoStackTrace
 
 case class RestServiceConfig(hostname: String, port: Int)
+
+object RestService {
+  private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(classOf[RestService])
+}
 
 case class RestService(
   config: RestServiceConfig, contestService: ContestService
@@ -230,7 +235,7 @@ case class RestService(
         unsafeRunSync(onHeatService(heatService).attempt) match {
 
           case ExitResult.Completed(Left(Left(HeatServiceError(cause)))) =>
-            println(cause)
+            log.error("Call to heat service failed: {}", cause)
             complete(HttpResponse(StatusCodes.InternalServerError, entity = "Heat Service currently not available"))
 
           case ExitResult.Completed(Left(Right(err))) =>
@@ -240,11 +245,11 @@ case class RestService(
             valueToRoute(resp)
 
           case ExitResult.Failed(_, defects) =>
-            defects.foreach(println)
+            log.error("Call to heat service failed with defects: {}", defects)
             complete(HttpResponse(StatusCodes.InternalServerError, entity = "Internal server error"))
 
           case ExitResult.Terminated(causes) =>
-            causes.foreach(println)
+            log.debug("Call to heat service terminated with defects: {}", causes)
             complete(HttpResponse(StatusCodes.InternalServerError, entity = "Internal server error"))
         }
     }

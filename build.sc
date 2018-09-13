@@ -14,6 +14,8 @@ object Dependencies {
     val scalaCheckVersion = "1.14.0"
     val sprayJsonVersion = "1.3.4"
     val zioVersion = "0.2.7"
+    val levelDbVersion = "1.8"
+    val slf4jApiVersion = "1.7.25"
   }
 
   import Versions._
@@ -34,8 +36,9 @@ object Dependencies {
 
   val sprayJson = ivy"io.spray::spray-json:$sprayJsonVersion"
 
-  val levelDb = ivy"org.fusesource.leveldbjni:leveldbjni-all:1.8"
-  val zio = ivy"org.scalaz::scalaz-zio:0.2.7"
+  val levelDb = ivy"org.fusesource.leveldbjni:leveldbjni-all:$levelDbVersion"
+  val zio = ivy"org.scalaz::scalaz-zio:$zioVersion"
+  val slf4jApi = ivy"org.slf4j:slf4j-api:$slf4jApiVersion"
 }
 
 def compile = T {
@@ -126,7 +129,7 @@ object rest extends ScalaModuleBase {
   import Dependencies._
 
   override def moduleDeps = Seq(domain, service)
-  override def ivyDeps = Agg(akkaHttp, akkaHttpSprayJson, akkaPersistenceQuery)
+  override def ivyDeps = Agg(akkaHttp, akkaHttpSprayJson, akkaPersistenceQuery, slf4jApi)
   object test extends TestsBase {
     override def moduleDeps = super.moduleDeps ++ Seq(domain.test)
     override def moreIvyDeps = Agg(akkaHttpTestKit)
