@@ -18,6 +18,8 @@ import com.bimschas.pwascoring.service.ContestActor.GetHeat
 import com.bimschas.pwascoring.service.ContestActor.GetHeats
 import com.bimschas.pwascoring.service.ContestActor.PlanContest
 import com.bimschas.pwascoring.service.HeatActor.HeatCommand
+import com.bimschas.pwascoring.service.Service.ServiceError
+import scalaz.zio.IO
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -36,17 +38,18 @@ case class ActorBasedContestService(system: ActorSystem[_], contestActor: ActorR
   extends ContestService {
 
   private implicit val scheduler: Scheduler = system.scheduler
-  private implicit val executionContext: ExecutionContext = system.executionContext
   private implicit val timeout: Timeout = Timeout(30.seconds)
 
-  override def planContest(heatIds: Set[HeatId]): Future[Either[Contest.ContestAlreadyPlanned.type, ContestPlannedEvent]] =
-    contestActor ? (ref => PlanContest(heatIds, ref))
+  override protected implicit val ec: ExecutionContext = system.executionContext
 
-  override def heats(): Future[Either[ContestNotPlanned.type, Set[HeatId]]] =
-    contestActor ? (ref => GetHeats(ref))
+  override def planContest(heatIds: Set[HeatId]): IO[Either[ServiceError, Contest.ContestAlreadyPlanned.type], ContestPlannedEvent] =
+    io(contestActor ? (ref => PlanContest(heatIds, ref)))
 
-  override def heat(heatId: HeatId): Future[Either[HeatIdUnknown, HeatService]] = {
+  override def heats(): IO[Either[ServiceError, ContestNotPlanned.type], Set[HeatId]] =
+    io(contestActor ? (ref => GetHeats(ref)))
+
+  override def heat(heatId: HeatId): IO[Either[ServiceError, HeatIdUnknown], HeatService] = {
     val future: Future[Either[HeatIdUnknown, EntityRef[HeatCommand]]] = contestActor ? (ref => GetHeat(heatId, ref))
-    future.map(_.right.map(ActorBasedHeatService.apply))
+    io(future.map(_.right.map(ActorBasedHeatService(system)(_))))
   }
 }

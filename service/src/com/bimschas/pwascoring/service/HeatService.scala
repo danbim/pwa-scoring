@@ -17,21 +17,18 @@ import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheets
 import com.bimschas.pwascoring.domain.WaveScore
 import com.bimschas.pwascoring.domain.WaveScoredEvent
-import com.bimschas.pwascoring.service.HeatService.HeatServiceError
+import com.bimschas.pwascoring.service.Service.ServiceError
 import scalaz.zio.IO
 
-import scala.util.control.NoStackTrace
-
-trait HeatService {
-  def planHeat(contestants: HeatContestants, rules: HeatRules): IO[Either[HeatServiceError, PlanHeatError], HeatPlannedEvent]
-  def contestants(): IO[Either[HeatServiceError, HeatNotPlanned.type], HeatContestants]
-  def scoreSheets(): IO[Either[HeatServiceError, HeatNotPlanned.type], ScoreSheets]
-  def startHeat(): IO[Either[HeatServiceError, StartHeatError], HeatStartedEvent]
-  def score(riderId: RiderId, waveScore: WaveScore): IO[Either[HeatServiceError, ScoreWaveError], WaveScoredEvent]
-  def score(riderId: RiderId, jumpScore: JumpScore): IO[Either[HeatServiceError, ScoreJumpError], JumpScoredEvent]
-  def endHeat(): IO[Either[HeatServiceError, EndHeatError], HeatEndedEvent]
+trait HeatService extends Service {
+  //format: OFF
+  def planHeat(contestants: HeatContestants, rules: HeatRules): IO[Either[ServiceError, PlanHeatError],       HeatPlannedEvent]
+  def contestants():                                            IO[Either[ServiceError, HeatNotPlanned.type], HeatContestants]
+  def scoreSheets():                                            IO[Either[ServiceError, HeatNotPlanned.type], ScoreSheets]
+  def startHeat():                                              IO[Either[ServiceError, StartHeatError],      HeatStartedEvent]
+  def score(riderId: RiderId, waveScore: WaveScore):            IO[Either[ServiceError, ScoreWaveError],      WaveScoredEvent]
+  def score(riderId: RiderId, jumpScore: JumpScore):            IO[Either[ServiceError, ScoreJumpError],      JumpScoredEvent]
+  def endHeat():                                                IO[Either[ServiceError, EndHeatError],        HeatEndedEvent]
+  //format: ON
 }
 
-object HeatService {
-  case class HeatServiceError(cause: Throwable) extends Exception with NoStackTrace
-}

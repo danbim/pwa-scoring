@@ -33,7 +33,7 @@ import com.bimschas.pwascoring.rest.RestService.log
 import com.bimschas.pwascoring.service.ContestService
 import com.bimschas.pwascoring.service.HeatIdOps
 import com.bimschas.pwascoring.service.HeatService
-import com.bimschas.pwascoring.service.HeatService.HeatServiceError
+import com.bimschas.pwascoring.service.Service.ServiceError
 import scalaz.zio.ExitResult
 import scalaz.zio.IO
 import scalaz.zio.RTS
@@ -81,8 +81,6 @@ case class RestService(
   }
 
   private sealed trait BadRequest
-  private case object ContestAlreadyPlannedException extends IllegalStateException(s"Contest already planned") with NoStackTrace with BadRequest
-  private case object ContestNotPlannedException extends IllegalStateException(s"Contest was not yet planned") with NoStackTrace with BadRequest
   private case class HeatNotPlannedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId was not yet planned") with NoStackTrace with BadRequest
   private case class HeatAlreadyPlannedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId is already planned") with NoStackTrace with BadRequest
   private case class HeatNotStartedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId has not yet started") with NoStackTrace with BadRequest
@@ -93,8 +91,6 @@ case class RestService(
 
   private val exceptionHandler: ExceptionHandler = ExceptionHandler {
     case badRequest: BadRequest => badRequest match {
-      case e: ContestNotPlannedException.type => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: ContestAlreadyPlannedException.type => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
       case e: HeatIdUnknownException => complete(HttpResponse(StatusCodes.NotFound, entity = e.getMessage))
       case e: RiderIdUnknownException => complete(HttpResponse(StatusCodes.NotFound, entity = e.getMessage))
       case e: HeatNotPlannedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
@@ -110,17 +106,17 @@ case class RestService(
 
     putHeats {
       entity(as[ContestSpec]) { contestSpec =>
-        onSuccess(contestService.planContest(contestSpec.heatIds)) {
-          case Left(ContestAlreadyPlanned) => failWith(ContestAlreadyPlannedException)
-          case Right(_) => complete(OK)
-        }
+        withContestService(_.planContest(contestSpec.heatIds)) {
+          case ContestAlreadyPlanned =>
+            complete(HttpResponse(StatusCodes.BadRequest, entity = s"Contest already planned"))
+        }(_ => complete(OK))
       }
     } ~
     getHeats {
-      onSuccess(contestService.heats()) {
-        case Left(ContestNotPlanned) => failWith(ContestNotPlannedException)
-        case Right(heatIds) => complete(heatIds)
-      }
+      withContestService(_.heats()) {
+        case ContestNotPlanned =>
+          complete(HttpResponse(StatusCodes.BadRequest, entity = s"Contest was not yet planned"))
+      }(heatIds => complete(heatIds))
     } ~
     getHeat { heatId =>
       get {
@@ -225,33 +221,72 @@ case class RestService(
     }
   }
 
-  private def withExistingHeat[E, V](heatId: HeatId)
-    (onHeatService: HeatService => IO[Either[HeatServiceError, E], V])
+  private def withContestService[E, V]
+    (onContestService: ContestService => IO[Either[ServiceError, E], V])
     (errToRoute: E => Route)
     (valueToRoute: V => Route): Route = {
-    onSuccess(contestService.heat(heatId)) {
-      case Left(HeatIdUnknown(id)) => failWith(HeatIdUnknownException(id))
-      case Right(heatService) =>
-        unsafeRunSync(onHeatService(heatService).attempt) match {
 
-          case ExitResult.Completed(Left(Left(HeatServiceError(cause)))) =>
-            log.error("Call to heat service failed: {}", cause)
-            complete(HttpResponse(StatusCodes.InternalServerError, entity = "Heat Service currently not available"))
+    val io = onContestService(contestService)
+      .leftMap {
+        case Left(ServiceError(cause)) =>
+          log.error("Call to contest service failed: {}", cause)
+          complete(HttpResponse(StatusCodes.InternalServerError, entity = "Contest Service currently not available"))
+        case Right(err) =>
+          errToRoute(err)
+      }.map(valueToRoute)
 
-          case ExitResult.Completed(Left(Right(err))) =>
-            errToRoute(err)
+    unsafeRunSync(io) match {
 
-          case ExitResult.Completed(Right(resp)) =>
-            valueToRoute(resp)
+      case ExitResult.Completed(response) =>
+        response
 
-          case ExitResult.Failed(_, defects) =>
-            log.error("Call to heat service failed with defects: {}", defects)
-            complete(HttpResponse(StatusCodes.InternalServerError, entity = "Internal server error"))
+      case ExitResult.Failed(errResponse, defects) =>
+        log.error("Call to contest service failed with defects: {}", defects)
+        errResponse
 
-          case ExitResult.Terminated(causes) =>
-            log.debug("Call to heat service terminated with defects: {}", causes)
-            complete(HttpResponse(StatusCodes.InternalServerError, entity = "Internal server error"))
-        }
+      case ExitResult.Terminated(causes) =>
+        log.debug("Call to contest service terminated with defects: {}", causes)
+        complete(HttpResponse(StatusCodes.InternalServerError, entity = "Internal server error"))
+    }
+  }
+
+  private def withExistingHeat[E, V](heatId: HeatId)
+    (onHeatService: HeatService => IO[Either[ServiceError, E], V])
+    (errToRoute: E => Route)
+    (valueToRoute: V => Route): Route = {
+
+    val io = contestService.heat(heatId)
+      .leftMap {
+        case Left(ServiceError(cause)) =>
+          log.error("Call to contest service failed: {}", cause)
+          complete(HttpResponse(StatusCodes.InternalServerError, entity = "Contest Service currently not available"))
+        case Right(HeatIdUnknown(unknownHeatId)) =>
+          complete(HttpResponse(StatusCodes.NotFound, entity = s"Unknown heatId $unknownHeatId"))
+      }
+      .flatMap { heatService =>
+        onHeatService(heatService)
+          .leftMap {
+            case Left(ServiceError(cause)) =>
+              log.error("Call to heat service failed: {}", cause)
+              complete(HttpResponse(StatusCodes.InternalServerError, entity = "Heat Service currently not available"))
+            case Right(err) =>
+              errToRoute(err)
+          }
+          .map(valueToRoute)
+      }
+
+    unsafeRunSync(io) match {
+
+      case ExitResult.Completed(response) =>
+        response
+
+      case ExitResult.Failed(errResponse, defects) =>
+        log.error("Call to contest / heat service failed with defects: {}", defects)
+        errResponse
+
+      case ExitResult.Terminated(causes) =>
+        log.debug("Call to contest / heat service terminated with defects: {}", causes)
+        complete(HttpResponse(StatusCodes.InternalServerError, entity = "Internal server error"))
     }
   }
 
