@@ -18,7 +18,7 @@ class TcpPortFactory(firstPort: Int, count: Int, maxRetries: Int) {
   def newAddress(hostname: String = "127.0.0.1"): InetSocketAddress = {
     def nextPort(): Int =
       firstPort + portCounter.getAndUpdate(new IntUnaryOperator {
-        override def applyAsInt(counter: Int) = (counter + 1) % count
+        override def applyAsInt(counter: Int): Int = (counter + 1) % count
       })
 
     def isFree(port: Int): Boolean = {
@@ -28,7 +28,7 @@ class TcpPortFactory(firstPort: Int, count: Int, maxRetries: Int) {
         serverSocket.bind(new InetSocketAddress(hostname, port))
         true
       } catch {
-        case e: IOException => false // port probably already in use
+        case _: IOException => false // port probably already in use
       } finally serverSocket.close()
     }
 

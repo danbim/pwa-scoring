@@ -21,7 +21,7 @@ object Points {
     Points(toBigDecimal(value))
   }
 
-  private val digits = 1
+  private lazy val digits = 1
   private def toBigDecimal(value: Double): BigDecimal = {
     BigDecimal(value, MathContext.UNLIMITED).setScale(digits, RoundingMode.CEILING)
   }
