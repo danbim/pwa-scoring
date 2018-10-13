@@ -4,3 +4,4 @@ project/target
 project/project/target
 out
 journal
+package-lock.json

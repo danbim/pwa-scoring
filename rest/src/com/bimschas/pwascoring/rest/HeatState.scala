@@ -6,23 +6,25 @@ import com.bimschas.pwascoring.domain.Points
 import com.bimschas.pwascoring.domain.RiderId
 import com.bimschas.pwascoring.domain.ScoreSheet
 
-case class HeatLiveStreamState(
+case class HeatState(
   heatId: HeatId,
   started: Boolean,
   ended: Boolean,
+  riderIds: Option[Array[RiderId]],
   scoreSheets: Option[Map[RiderId, ScoreSheet]],
   totalScores: Option[Map[RiderId, Points]],
   leader: Option[RiderId]
 )
 
-object HeatLiveStreamState {
+object HeatState {
 
-  def apply(heat: Heat): HeatLiveStreamState = {
+  def apply(heat: Heat): HeatState = {
     val totalScores = toTotalScores(heat)
-    HeatLiveStreamState(
+    HeatState(
       heatId = heat.heatId,
       started = heat.started,
       ended = heat.ended,
+      riderIds = heat.scoreSheets.map(_.scoreSheetsByRider.keys.toArray),
       scoreSheets = heat.scoreSheets.map(_.scoreSheetsByRider),
       totalScores = totalScores,
       leader = leader(totalScores)

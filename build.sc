@@ -10,6 +10,7 @@ object Dependencies {
     val scalaVersion = "2.12.6"
     val akkaVersion = "2.5.11"
     val akkaHttpVersion = "10.1.3"
+    val akkaHttpCorsVersion = "0.3.1"
     val scalaTestVersion = "3.0.5"
     val scalaCheckVersion = "1.14.0"
     val sprayJsonVersion = "1.3.4"
@@ -26,6 +27,7 @@ object Dependencies {
 	val akkaPersistenceQuery = ivy"com.typesafe.akka::akka-persistence-query:$akkaVersion"
   val akkaClusterShardingTyped = ivy"com.typesafe.akka::akka-cluster-sharding-typed:$akkaVersion"
   val akkaTestKitTyped = ivy"com.typesafe.akka::akka-testkit-typed:$akkaVersion"
+  val akkaHttpCors = ivy"ch.megard::akka-http-cors:$akkaHttpCorsVersion"
 
   val akkaHttp = ivy"com.typesafe.akka::akka-http:$akkaHttpVersion"
   val akkaHttpSprayJson = ivy"com.typesafe.akka::akka-http-spray-json:$akkaHttpVersion"
@@ -124,7 +126,7 @@ object rest extends ScalaModuleBase {
   import Dependencies._
 
   override def moduleDeps = Seq(domain, service)
-  override def ivyDeps = Agg(akkaHttp, akkaHttpSprayJson, akkaPersistenceQuery)
+  override def ivyDeps = Agg(akkaHttp, akkaHttpSprayJson, akkaPersistenceQuery, akkaHttpCors)
   object test extends TestsBase {
     override def moduleDeps = super.moduleDeps ++ Seq(domain.test)
     override def moreIvyDeps = Agg(akkaHttpTestKit)

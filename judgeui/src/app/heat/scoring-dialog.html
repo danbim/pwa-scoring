@@ -1,0 +1,13 @@
+<div mat-dialog-content *ngIf="data.waveOrJump == 'jump'">
+    <jump-score-form [heatId]="data.heatId"></jump-score-form>
+</div>
+
+<div mat-dialog-content *ngIf="data.waveOrJump == 'wave'">
+    <wave-score-form [heatId]="data.heatId"></wave-score-form>
+</div>
+
+<div mat-dialog-actions>
+    <button mat-raised-button color="warn" (click)="onClickAbort()">Abort</button>
+    <button mat-raised-button color="primary">Submit Score</button>
+    <!--[mat-dialog-close]=""-->
+</div>

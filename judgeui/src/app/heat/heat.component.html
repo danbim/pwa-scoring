@@ -1,0 +1,20 @@
+<div class="grid-container">
+
+    <h1 class="mat-h1">
+        Contest {{ contestId }} >>
+        Elimination {{ eliminationId }} >>
+        Judge {{ judgeId }} >>
+        Heat {{ heatId }}
+    </h1>
+
+    <div *ngIf="heatState">
+        <button mat-raised-button color="primary" (click)="openJumpScoringDialog()" *ngIf="heatRunning()">Score Jump</button>&nbsp;
+        <button mat-raised-button color="primary" (click)="openWaveScoringDialog()" *ngIf="heatRunning()">Score Wave</button>&nbsp;
+
+        <button mat-raised-button color="warn" (click)="startHeat()" *ngIf="heatNotStarted()">Start Heat</button>&nbsp;
+        <button mat-raised-button color="warn" (click)="endHeat()" *ngIf="heatRunning()">End Heat</button>
+    </div>
+
+    <heat-state [heatId]="heatId" [heatState]="heatState"></heat-state>
+
+</div>

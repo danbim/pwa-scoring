@@ -1,0 +1,28 @@
+<div *ngIf="heatState" class="grid-container">
+
+    <h3>Leader</h3>
+    <div *ngIf="heatState.leader">
+        {{ heatState.leader }} ({{ heatState.totalScores[heatState.leader] }})
+    </div>
+
+    <div *ngFor="let riderId of heatState.riderIds">
+        <h3>ScoreSheets for {{ riderId }}</h3>
+
+        <div *ngIf="heatState.totalScores && heatState.totalScores[riderId]">
+            <b>Total Score: </b>
+            {{ heatState.totalScores[riderId] }}
+        </div>
+
+        <div *ngIf="heatState.scoreSheets && heatState.scoreSheets[riderId]">
+            <b>Wave Scores:</b>
+            {{ renderWaveScores(heatState.scoreSheets[riderId]) }}
+        </div>
+
+        <div *ngIf="heatState.scoreSheets && heatState.scoreSheets[riderId]">
+            <b>Jump Scores:</b>
+            {{ renderJumpScores(heatState.scoreSheets[riderId]) }}
+        </div>
+
+    </div>
+
+</div>

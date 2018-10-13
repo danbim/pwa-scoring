@@ -6,6 +6,9 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.Host
+import akka.http.scaladsl.model.headers.HttpOrigin
+import akka.http.scaladsl.model.headers.HttpOriginRange
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.ExceptionHandler
@@ -37,6 +40,8 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 import scala.util.control.NoStackTrace
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 
 case class RestServiceConfig(hostname: String, port: Int)
 
@@ -62,8 +67,8 @@ case class RestService(
     val putHeats           = put  & path("contest" / "heats")
     val getHeats           = get  & path("contest" / "heats")
     val putHeat            = put  & path("contest" / "heats" / HeatIdSegment)
-    val getHeat            = get  & path("contest" / "heats" / HeatIdSegment)
-    val getHeatEvents      = get  & path("contest" / "heats" / HeatIdSegment / "events")
+    val getHeatStateStream = get  & path("contest" / "heats" / HeatIdSegment)
+    val getHeatEventStream = get  & path("contest" / "heats" / HeatIdSegment / "events")
     val getHeatContestants = get  & path("contest" / "heats" / HeatIdSegment / "contestants")
     val getHeatScoreSheets = get  & path("contest" / "heats" / HeatIdSegment / "scoreSheets")
     val postHeatWaveScore  = post & path("contest" / "heats" / HeatIdSegment / "waveScores" / RiderIdSegment)
@@ -96,7 +101,13 @@ case class RestService(
     }
   }
 
-  lazy val route: Route = handleExceptions(exceptionHandler) {
+  /** allow local CORS during development on port 4200 (Angulars 'ng serve' default port) */
+  private val corsSettings: CorsSettings =
+    CorsSettings.defaultSettings
+      .withAllowedOrigins(HttpOriginRange(HttpOrigin("http", Host("localhost", 4200))))
+      .withAllowedMethods(List(HttpMethods.GET, HttpMethods.POST, HttpMethods.PUT, HttpMethods.DELETE))
+
+  lazy val route: Route = cors(corsSettings)(handleExceptions(exceptionHandler) {
     import Endpoints._
 
     putHeats {
@@ -113,7 +124,7 @@ case class RestService(
         case Right(heatIds) => complete(heatIds)
       }
     } ~
-    getHeat { heatId =>
+    getHeatStateStream { heatId =>
       get {
         complete {
           val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
@@ -123,13 +134,13 @@ case class RestService(
             .collectType[HeatEvent]
             .map(heatEvent => heatEvent)
             .scan(Heat(heatId))((heat, heatEvent) => heat.handleEvent(heatEvent))
-            .map(heat => HeatLiveStreamState.apply(heat))
-            .map(heatLiveStreamState => ServerSentEvent(asJson(heatLiveStreamState).toString()))
+            .map(heat => HeatState.apply(heat))
+            .map(heatState => ServerSentEvent(asJson(heatState).toString()))
             .keepAlive(10.seconds, () => ServerSentEvent.heartbeat)
         }
       }
     } ~
-    getHeatEvents { heatId =>
+    getHeatEventStream { heatId =>
       get {
         complete {
           val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
@@ -193,7 +204,7 @@ case class RestService(
           case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
           case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
           case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
-          case Right(_) => complete(OK)
+          case Right(waveScoredEvent) => complete(waveScoredEvent)
         }
       }
     } ~
@@ -203,11 +214,11 @@ case class RestService(
           case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
           case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
           case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
-          case Right(_) => complete(OK)
+          case Right(jumpScoredEvent) => complete(jumpScoredEvent)
         }
       }
     }
-  }
+  })
 
   private def withExistingHeat[T, R](heatId: HeatId)(onHeatService: HeatService => Future[R])(toRoute: R => Route): Route = {
     onSuccess(contestService.heat(heatId)) {

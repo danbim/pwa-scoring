@@ -1,0 +1,12 @@
+<div class="grid-container">
+  <h1 class="mat-h1">Judge Selection</h1>
+  <mat-grid-list cols="2" rowHeight="100px">
+    <mat-grid-tile *ngFor="let judge of judges | async" [colspan]="1" [rowspan]="1">
+      <mat-card class="dashboard-card" routerLink="/contests/{{ contestId }}/eliminations/{{ eliminationId }}/heats/{{ heatId }}/judges/{{ judge.id }}">
+        <mat-card-content class="dashboard-card-content">
+          {{ judge.name }}
+        </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+  </mat-grid-list>
+</div>
