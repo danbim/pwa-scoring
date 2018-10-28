@@ -45,13 +45,11 @@ def compile = T {
   app.compile
 }
 
-object test extends Module {
-  def compile = T {
-    domain.test.compile
-    service.test.compile
-    rest.test.compile
-    app.test.compile
-  }
+def test(args: String*) = T.command {
+  domain.test.test(args: _*)()
+  service.test.test(args: _*)()
+  rest.test.test(args: _*)()
+  app.test.test(args: _*)()
 }
 
 trait ScalaModuleBase extends ScalaModule {
