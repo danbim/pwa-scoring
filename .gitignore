@@ -5,3 +5,6 @@ project/project/target
 out
 journal
 package-lock.json
+.bloop
+.metals
+.vscode
