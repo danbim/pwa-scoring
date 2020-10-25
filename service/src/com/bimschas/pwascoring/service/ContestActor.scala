@@ -64,15 +64,17 @@ object ContestActor {
   val PersistenceId = "ContestPersistenceId"
 
   val behavior: Behavior[ContestCommand] =
-    PersistentBehaviors.immutable[ContestCommand, ContestEvent, Contest](
-      persistenceId = ContestActor.PersistenceId,
-      initialState = Contest.empty,
-      commandHandler = contestCommandHandler,
-      eventHandler = eventHandler
-    ).onRecoveryCompleted { (ctx, _) =>
-      spawnShardRegion(ctx)
-      ()
-    }
+    PersistentBehaviors
+      .immutable[ContestCommand, ContestEvent, Contest](
+        persistenceId = ContestActor.PersistenceId,
+        initialState = Contest.empty,
+        commandHandler = contestCommandHandler,
+        eventHandler = eventHandler
+      )
+      .onRecoveryCompleted { (ctx, _) =>
+        spawnShardRegion(ctx)
+        ()
+      }
 
   ///////////////////
   // Event Handler //
@@ -106,9 +108,9 @@ object ContestActor {
         case GetHeat(heatId, sender) =>
           Effect.none.andThen { _ =>
             val response = state.heats match {
-              case Left(ContestNotPlanned) => Left(HeatIdUnknown(heatId))
+              case Left(ContestNotPlanned)                     => Left(HeatIdUnknown(heatId))
               case Right(heatIds) if !heatIds.contains(heatId) => Left(HeatIdUnknown(heatId))
-              case Right(_) => Right(heatEntityRef(ctx, heatId))
+              case Right(_)                                    => Right(heatEntityRef(ctx, heatId))
             }
             sender ! response
           }

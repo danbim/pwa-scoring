@@ -81,70 +81,71 @@ object HeatActor {
   /////////////////////
 
   private lazy val commandHandler: CommandHandler[HeatCommand, HeatEvent, Heat] =
-    (_, state, command) => command match {
+    (_, state, command) =>
+      command match {
 
-      case PlanHeat(contestants, rules, replyTo) =>
-        state.planHeat(contestants, rules) match {
-          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
-          case Right(heatPlannedEvent) =>
-            Effect.persist(heatPlannedEvent).andThen { _ =>
-              replyTo ! Right(heatPlannedEvent)
-            }
-        }
-
-      case GetContestants(replyTo) =>
-        Effect.none.andThen(_ =>
-          state.scoreSheets match {
-            case None => replyTo ! Left(HeatNotPlanned)
-            case Some(sheets) => replyTo ! Right(HeatContestants(sheets.scoreSheetsByRider.keySet))
+        case PlanHeat(contestants, rules, replyTo) =>
+          state.planHeat(contestants, rules) match {
+            case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+            case Right(heatPlannedEvent) =>
+              Effect.persist(heatPlannedEvent).andThen { _ =>
+                replyTo ! Right(heatPlannedEvent)
+              }
           }
-        )
 
-      case GetScoreSheets(replyTo) =>
-        Effect.none.andThen(_ =>
-          state.scoreSheets match {
-            case None => replyTo ! Left(HeatNotPlanned)
-            case Some(sheets) => replyTo ! Right(sheets)
+        case GetContestants(replyTo) =>
+          Effect.none.andThen(_ =>
+            state.scoreSheets match {
+              case None         => replyTo ! Left(HeatNotPlanned)
+              case Some(sheets) => replyTo ! Right(HeatContestants(sheets.scoreSheetsByRider.keySet))
+            }
+          )
+
+        case GetScoreSheets(replyTo) =>
+          Effect.none.andThen(_ =>
+            state.scoreSheets match {
+              case None         => replyTo ! Left(HeatNotPlanned)
+              case Some(sheets) => replyTo ! Right(sheets)
+            }
+          )
+
+        case StartHeat(replyTo) =>
+          state.startHeat() match {
+            case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+            case Right(heatStartedEvent) =>
+              Effect.persist(heatStartedEvent).andThen { _ =>
+                replyTo ! Right(heatStartedEvent)
+              }
           }
-        )
 
-      case StartHeat(replyTo) =>
-        state.startHeat() match {
-          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
-          case Right(heatStartedEvent) =>
-            Effect.persist(heatStartedEvent).andThen { _ =>
-              replyTo ! Right(heatStartedEvent)
-            }
-        }
+        case ScoreJump(riderId, jumpScore, replyTo) =>
+          state.scoreJump(riderId, jumpScore) match {
+            case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+            case Right(jumpScoredEvent) =>
+              Effect.persist(jumpScoredEvent).andThen { _ =>
+                replyTo ! Right(jumpScoredEvent)
+              }
+          }
 
-      case ScoreJump(riderId, jumpScore, replyTo) =>
-        state.scoreJump(riderId, jumpScore) match {
-          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
-          case Right(jumpScoredEvent) =>
-            Effect.persist(jumpScoredEvent).andThen { _ =>
-              replyTo ! Right(jumpScoredEvent)
-            }
-        }
+        case ScoreWave(riderId, waveScore, replyTo) =>
+          state.scoreWave(riderId, waveScore) match {
+            case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+            case Right(waveScoredEvent) =>
+              Effect.persist(waveScoredEvent).andThen { _ =>
+                replyTo ! Right(waveScoredEvent)
+              }
+          }
 
-      case ScoreWave(riderId, waveScore, replyTo) =>
-        state.scoreWave(riderId, waveScore) match {
-          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
-          case Right(waveScoredEvent) =>
-            Effect.persist(waveScoredEvent).andThen { _ =>
-              replyTo ! Right(waveScoredEvent)
-            }
-        }
+        case EndHeat(replyTo) =>
+          state.endHeat() match {
+            case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
+            case Right(heatEndedEvent) =>
+              Effect.persist(heatEndedEvent).andThen { _ =>
+                replyTo ! Right(heatEndedEvent)
+              }
+          }
 
-      case EndHeat(replyTo) =>
-        state.endHeat() match {
-          case Left(error) => Effect.none.andThen(_ => replyTo ! Left(error))
-          case Right(heatEndedEvent) =>
-            Effect.persist(heatEndedEvent).andThen { _ =>
-              replyTo ! Right(heatEndedEvent)
-            }
-        }
-
-      case PassivateHeat =>
-        Effect.stop
-    }
+        case PassivateHeat =>
+          Effect.stop
+      }
 }

@@ -31,8 +31,8 @@ class ContestActorSpec extends SpecBase {
   object TestRunningHeatActor {
 
     def apply(
-      contestActor: ActorRef[ContestActor.ContestCommand],
-      heatId: HeatId
+        contestActor: ActorRef[ContestActor.ContestCommand],
+        heatId: HeatId
     )(implicit system: ActorSystem[_]): EntityRef[HeatCommand] = {
 
       // plan contest
@@ -96,7 +96,7 @@ class ContestActorSpec extends SpecBase {
         }
       }
     }
-*/
+ */
 /*
     "being restartet" must {
       "remember all scores" in {
@@ -161,4 +161,4 @@ class ContestActorSpec extends SpecBase {
         }
       }
     }
-*/
+ */

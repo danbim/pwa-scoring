@@ -11,14 +11,15 @@ import org.scalatest.prop.PropertyChecks
 
 import scala.util.control.NonFatal
 
-class SpecBase extends WordSpec
-  with BeforeAndAfterAll
-  with ScalaFutures
-  with OptionValues
-  with EitherValues
-  with Matchers
-  with PropertyChecks
-  with DomainGenerators {
+class SpecBase
+    extends WordSpec
+    with BeforeAndAfterAll
+    with ScalaFutures
+    with OptionValues
+    with EitherValues
+    with Matchers
+    with PropertyChecks
+    with DomainGenerators {
 
   protected def withResources[T <: AutoCloseable, V](r: => T)(f: T => V): V = {
     val resource: T = r

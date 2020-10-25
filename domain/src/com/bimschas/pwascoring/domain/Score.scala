@@ -4,8 +4,8 @@ sealed trait Score {
   val points: Points
 }
 
-final case class JumpScore private(jumpType: JumpType, points: Points) extends Score
-final case class WaveScore private(points: Points) extends Score
+final case class JumpScore private (jumpType: JumpType, points: Points) extends Score
+final case class WaveScore private (points: Points) extends Score
 
 object Score {
 

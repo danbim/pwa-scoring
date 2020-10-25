@@ -46,8 +46,10 @@ import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 case class RestServiceConfig(hostname: String, port: Int)
 
 case class RestService(
-  config: RestServiceConfig, contestService: ContestService
-)(implicit system: ActorSystem, materializer: ActorMaterializer, ec: ExecutionContext) extends ContestJsonSupport {
+    config: RestServiceConfig,
+    contestService: ContestService
+)(implicit system: ActorSystem, materializer: ActorMaterializer, ec: ExecutionContext)
+    extends ContestJsonSupport {
 
   private lazy val bindingFuture: Future[Http.ServerBinding] =
     Http().bindAndHandle(DebuggingDirectives.logRequestResult(("REST", Logging.DebugLevel))(route), config.hostname, config.port)
@@ -79,26 +81,39 @@ case class RestService(
   private sealed trait BadRequest
   private case object ContestAlreadyPlannedException extends IllegalStateException(s"Contest already planned") with NoStackTrace with BadRequest
   private case object ContestNotPlannedException extends IllegalStateException(s"Contest was not yet planned") with NoStackTrace with BadRequest
-  private case class HeatNotPlannedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId was not yet planned") with NoStackTrace with BadRequest
-  private case class HeatAlreadyPlannedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId is already planned") with NoStackTrace with BadRequest
-  private case class HeatNotStartedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId has not yet started") with NoStackTrace with BadRequest
-  private case class HeatAlreadyStartedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId already started") with NoStackTrace with BadRequest
+  private case class HeatNotPlannedException(heatId: HeatId)
+      extends IllegalStateException(s"Heat $heatId was not yet planned")
+      with NoStackTrace
+      with BadRequest
+  private case class HeatAlreadyPlannedException(heatId: HeatId)
+      extends IllegalStateException(s"Heat $heatId is already planned")
+      with NoStackTrace
+      with BadRequest
+  private case class HeatNotStartedException(heatId: HeatId)
+      extends IllegalStateException(s"Heat $heatId has not yet started")
+      with NoStackTrace
+      with BadRequest
+  private case class HeatAlreadyStartedException(heatId: HeatId)
+      extends IllegalStateException(s"Heat $heatId already started")
+      with NoStackTrace
+      with BadRequest
   private case class HeatIdUnknownException(heatId: HeatId) extends IllegalArgumentException(s"Unknown heatId $heatId") with NoStackTrace with BadRequest
   private case class RiderIdUnknownException(riderId: RiderId) extends IllegalArgumentException(s"Unknown riderId $riderId") with NoStackTrace with BadRequest
   private case class HeatAlreadyEndedException(heatId: HeatId) extends IllegalStateException(s"Heat $heatId already ended") with NoStackTrace with BadRequest
 
   private val exceptionHandler: ExceptionHandler = ExceptionHandler {
-    case badRequest: BadRequest => badRequest match {
-      case e: ContestNotPlannedException.type => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: ContestAlreadyPlannedException.type => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: HeatIdUnknownException => complete(HttpResponse(StatusCodes.NotFound, entity = e.getMessage))
-      case e: RiderIdUnknownException => complete(HttpResponse(StatusCodes.NotFound, entity = e.getMessage))
-      case e: HeatNotPlannedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: HeatNotStartedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: HeatAlreadyStartedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: HeatAlreadyPlannedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-      case e: HeatAlreadyEndedException => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
-    }
+    case badRequest: BadRequest =>
+      badRequest match {
+        case e: ContestNotPlannedException.type     => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
+        case e: ContestAlreadyPlannedException.type => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
+        case e: HeatIdUnknownException              => complete(HttpResponse(StatusCodes.NotFound, entity = e.getMessage))
+        case e: RiderIdUnknownException             => complete(HttpResponse(StatusCodes.NotFound, entity = e.getMessage))
+        case e: HeatNotPlannedException             => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
+        case e: HeatNotStartedException             => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
+        case e: HeatAlreadyStartedException         => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
+        case e: HeatAlreadyPlannedException         => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
+        case e: HeatAlreadyEndedException           => complete(HttpResponse(StatusCodes.BadRequest, entity = e.getMessage))
+      }
   }
 
   /** allow local CORS during development on port 4200 (Angulars 'ng serve' default port) */
@@ -114,110 +129,110 @@ case class RestService(
       entity(as[ContestSpec]) { contestSpec =>
         onSuccess(contestService.planContest(contestSpec.heatIds)) {
           case Left(ContestAlreadyPlanned) => failWith(ContestAlreadyPlannedException)
-          case Right(_) => complete(OK)
+          case Right(_)                    => complete(OK)
         }
       }
     } ~
-    getHeats {
-      onSuccess(contestService.heats()) {
-        case Left(ContestNotPlanned) => failWith(ContestNotPlannedException)
-        case Right(heatIds) => complete(heatIds)
-      }
-    } ~
-    getHeatStateStream { heatId =>
-      get {
-        complete {
-          val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
-          persistenceQuery
-            .eventsByPersistenceId(heatId.entityId, 0L, Long.MaxValue)
-            .map(_.event)
-            .collectType[HeatEvent]
-            .map(heatEvent => heatEvent)
-            .scan(Heat(heatId))((heat, heatEvent) => heat.handleEvent(heatEvent))
-            .map(heat => HeatState.apply(heat))
-            .map(heatState => ServerSentEvent(asJson(heatState).toString()))
-            .keepAlive(10.seconds, () => ServerSentEvent.heartbeat)
+      getHeats {
+        onSuccess(contestService.heats()) {
+          case Left(ContestNotPlanned) => failWith(ContestNotPlannedException)
+          case Right(heatIds)          => complete(heatIds)
         }
-      }
-    } ~
-    getHeatEventStream { heatId =>
-      get {
-        complete {
-          val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
-          persistenceQuery
-            .eventsByPersistenceId(heatId.entityId, 0L, Long.MaxValue)
-            .filter(_.event.isInstanceOf[HeatEvent])
-            .map { envelope =>
-              val heatEvent = envelope.event.asInstanceOf[HeatEvent]
-              ServerSentEvent(
-                data = asJson(heatEvent).toString(),
-                `type` = heatEvent.getClass.getSimpleName,
-                id = envelope.sequenceNr.toString
-              )
+      } ~
+      getHeatStateStream { heatId =>
+        get {
+          complete {
+            val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+            persistenceQuery
+              .eventsByPersistenceId(heatId.entityId, 0L, Long.MaxValue)
+              .map(_.event)
+              .collectType[HeatEvent]
+              .map(heatEvent => heatEvent)
+              .scan(Heat(heatId))((heat, heatEvent) => heat.handleEvent(heatEvent))
+              .map(heat => HeatState.apply(heat))
+              .map(heatState => ServerSentEvent(asJson(heatState).toString()))
+              .keepAlive(10.seconds, () => ServerSentEvent.heartbeat)
+          }
+        }
+      } ~
+      getHeatEventStream { heatId =>
+        get {
+          complete {
+            val persistenceQuery = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+            persistenceQuery
+              .eventsByPersistenceId(heatId.entityId, 0L, Long.MaxValue)
+              .filter(_.event.isInstanceOf[HeatEvent])
+              .map { envelope =>
+                val heatEvent = envelope.event.asInstanceOf[HeatEvent]
+                ServerSentEvent(
+                  data = asJson(heatEvent).toString(),
+                  `type` = heatEvent.getClass.getSimpleName,
+                  id = envelope.sequenceNr.toString
+                )
+              }
+              .keepAlive(10.seconds, () => ServerSentEvent.heartbeat)
+          }
+        }
+      } ~
+      putHeat { heatId =>
+        parameter(('startHeat.?, 'endHeat.?)) { (startHeat, endHeat) =>
+          if (startHeat.isDefined && startHeat.contains("true")) {
+            withExistingHeat(heatId)(_.startHeat()) {
+              case Left(HeatNotPlanned)     => failWith(HeatNotPlannedException(heatId))
+              case Left(HeatAlreadyStarted) => failWith(HeatAlreadyStartedException(heatId))
+              case Left(HeatAlreadyEnded)   => failWith(HeatAlreadyEndedException(heatId))
+              case Right(_)                 => complete(OK)
             }
-            .keepAlive(10.seconds, () => ServerSentEvent.heartbeat)
-        }
-      }
-    } ~
-    putHeat { heatId =>
-      parameter(('startHeat.?, 'endHeat.?)) { (startHeat, endHeat) =>
-        if (startHeat.isDefined && startHeat.contains("true")) {
-          withExistingHeat(heatId)(_.startHeat()) {
-            case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
-            case Left(HeatAlreadyStarted) => failWith(HeatAlreadyStartedException(heatId))
-            case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
-            case Right(_) => complete(OK)
-          }
-        }
-        else if (endHeat.isDefined && endHeat.contains("true")) {
-          withExistingHeat(heatId)(_.endHeat()) {
-            case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
-            case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
-            case Right(_) => complete(OK)
-          }
-        }
-        else {
-          entity(as[HeatSpec]) { heatSpec =>
-            withExistingHeat(heatId)(_.planHeat(heatSpec.contestants, heatSpec.rules)) {
-              case Left(HeatAlreadyPlanned) => failWith(HeatAlreadyPlannedException(heatId))
-              case Right(_) => complete(OK)
+          } else if (endHeat.isDefined && endHeat.contains("true")) {
+            withExistingHeat(heatId)(_.endHeat()) {
+              case Left(HeatNotStarted)   => failWith(HeatNotStartedException(heatId))
+              case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
+              case Right(_)               => complete(OK)
+            }
+          } else {
+            entity(as[HeatSpec]) { heatSpec =>
+              withExistingHeat(heatId)(_.planHeat(heatSpec.contestants, heatSpec.rules)) {
+                case Left(HeatAlreadyPlanned) => failWith(HeatAlreadyPlannedException(heatId))
+                case Right(_)                 => complete(OK)
+              }
             }
           }
         }
-      }
-    } ~
-    getHeatContestants { heatId =>
-      withExistingHeat(heatId)(_.contestants()) {
-        case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
-        case Right(contestants) => complete(contestants)
-      }
-    } ~
-    getHeatScoreSheets { heatId =>
-      withExistingHeat(heatId)(_.scoreSheets()) {
-        case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
-        case Right(scoreSheets) => complete(scoreSheets)
-      }
-    } ~
-    postHeatWaveScore { case (heatId, riderId) =>
-      entity(as[WaveScore]) { waveScore =>
-        withExistingHeat(heatId)(_.score(riderId, waveScore)) {
-          case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
-          case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
-          case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
-          case Right(waveScoredEvent) => complete(waveScoredEvent)
+      } ~
+      getHeatContestants { heatId =>
+        withExistingHeat(heatId)(_.contestants()) {
+          case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
+          case Right(contestants)   => complete(contestants)
         }
-      }
-    } ~
-    postHeatJumpScore { case (heatId, riderId) =>
-      entity(as[JumpScore]) { jumpScore =>
-        withExistingHeat(heatId)(_.score(riderId, jumpScore)) {
-          case Left(HeatNotStarted) => failWith(HeatNotStartedException(heatId))
-          case Left(HeatAlreadyEnded) => failWith(HeatAlreadyEndedException(heatId))
-          case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
-          case Right(jumpScoredEvent) => complete(jumpScoredEvent)
+      } ~
+      getHeatScoreSheets { heatId =>
+        withExistingHeat(heatId)(_.scoreSheets()) {
+          case Left(HeatNotPlanned) => failWith(HeatNotPlannedException(heatId))
+          case Right(scoreSheets)   => complete(scoreSheets)
         }
+      } ~
+      postHeatWaveScore {
+        case (heatId, riderId) =>
+          entity(as[WaveScore]) { waveScore =>
+            withExistingHeat(heatId)(_.score(riderId, waveScore)) {
+              case Left(HeatNotStarted)     => failWith(HeatNotStartedException(heatId))
+              case Left(HeatAlreadyEnded)   => failWith(HeatAlreadyEndedException(heatId))
+              case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
+              case Right(waveScoredEvent)   => complete(waveScoredEvent)
+            }
+          }
+      } ~
+      postHeatJumpScore {
+        case (heatId, riderId) =>
+          entity(as[JumpScore]) { jumpScore =>
+            withExistingHeat(heatId)(_.score(riderId, jumpScore)) {
+              case Left(HeatNotStarted)     => failWith(HeatNotStartedException(heatId))
+              case Left(HeatAlreadyEnded)   => failWith(HeatAlreadyEndedException(heatId))
+              case Left(RiderIdUnknown(id)) => failWith(RiderIdUnknownException(id))
+              case Right(jumpScoredEvent)   => complete(jumpScoredEvent)
+            }
+          }
       }
-    }
   })
 
   private def withExistingHeat[T, R](heatId: HeatId)(onHeatService: HeatService => Future[R])(toRoute: R => Route): Route = {

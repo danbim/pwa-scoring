@@ -11,9 +11,10 @@ class PointsSpec extends WordSpec with DomainGenerators with Matchers {
       val unsorted = sample(shortListGen(pointsGen))
       val sorted = unsorted.sorted(Points.AscendingOrdering)
 
-      sorted.foldLeft(Points.Min) { case (last, current) =>
-        last.value <= current.value shouldBe true
-        current
+      sorted.foldLeft(Points.Min) {
+        case (last, current) =>
+          last.value <= current.value shouldBe true
+          current
       }
     }
   }

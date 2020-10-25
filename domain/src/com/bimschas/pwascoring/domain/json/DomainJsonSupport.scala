@@ -28,45 +28,55 @@ import spray.json.deserializationError
 trait DomainJsonSupport extends DefaultJsonProtocol {
 
   implicit lazy val heatIdFormat: JsonFormat[HeatId] = new JsonFormat[HeatId] {
-    override def read(json: JsValue): HeatId = json match {
-      case JsString(v) => HeatId.parse(v).fold(
-        t => deserializationError(s"$v is not a valid HeatId", t),
-        id => id
-      )
-      case v => deserializationError(s"$v is not a valid HeatId")
-    }
+    override def read(json: JsValue): HeatId =
+      json match {
+        case JsString(v) =>
+          HeatId
+            .parse(v)
+            .fold(
+              t => deserializationError(s"$v is not a valid HeatId", t),
+              id => id
+            )
+        case v => deserializationError(s"$v is not a valid HeatId")
+      }
     override def write(obj: HeatId): JsValue =
       JsString(obj.toString)
   }
 
   implicit lazy val riderIdFormat: JsonFormat[RiderId] = new JsonFormat[RiderId] {
     override def write(obj: RiderId): JsValue = JsString(obj.sailNr)
-    override def read(json: JsValue): RiderId = json match {
-      case JsString(value) => RiderId.apply(value)
-      case sthElse => throw DeserializationException(s"Expected a rider ID, got [$sthElse]")
-    }
+    override def read(json: JsValue): RiderId =
+      json match {
+        case JsString(value) => RiderId.apply(value)
+        case sthElse         => throw DeserializationException(s"Expected a rider ID, got [$sthElse]")
+      }
   }
 
   implicit lazy val pointsFormat: JsonFormat[Points] = new JsonFormat[Points] {
     override def write(obj: Points): JsValue = JsNumber(obj.value)
-    override def read(json: JsValue): Points = json match {
-      case JsNumber(value) => Points(value)
-      case sthElse => throw DeserializationException(s"Expected a number, got [$sthElse]")
-    }
+    override def read(json: JsValue): Points =
+      json match {
+        case JsNumber(value) => Points(value)
+        case sthElse         => throw DeserializationException(s"Expected a number, got [$sthElse]")
+      }
   }
 
   implicit lazy val jumpTypeFormat: JsonFormat[JumpType] = new JsonFormat[JumpType] {
     override def write(obj: JumpType): JsValue = JsString(obj.toString.toLowerCase())
-    override def read(json: JsValue): JumpType = json match {
-      case JsString(value) =>
-        JumpType.values.collectFirst {
-          case jumpType if jumpType.toString.toLowerCase() == value.toLowerCase() => jumpType
-        }.orElse(
-          throw DeserializationException(s"Expected one of ${JumpType.values.map(_.toString.toLowerCase())}, got [$value]")
-        ).get
-      case sthElse =>
-        throw DeserializationException(s"Expected one of ${JumpType.values.map(_.toString.toLowerCase())}, got [$sthElse]")
-    }
+    override def read(json: JsValue): JumpType =
+      json match {
+        case JsString(value) =>
+          JumpType.values
+            .collectFirst {
+              case jumpType if jumpType.toString.toLowerCase() == value.toLowerCase() => jumpType
+            }
+            .orElse(
+              throw DeserializationException(s"Expected one of ${JumpType.values.map(_.toString.toLowerCase())}, got [$value]")
+            )
+            .get
+        case sthElse =>
+          throw DeserializationException(s"Expected one of ${JumpType.values.map(_.toString.toLowerCase())}, got [$sthElse]")
+      }
   }
 
   implicit lazy val heatRulesFormat: JsonFormat[HeatRules] = jsonFormat2(HeatRules.apply)

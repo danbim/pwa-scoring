@@ -11,7 +11,8 @@ object BasicGenerators extends BasicGenerators
 trait BasicGenerators {
 
   def sample[A](g: Gen[A]): A =
-    Stream.fill(30)(g.sample)
+    Stream
+      .fill(30)(g.sample)
       .collectFirst { case Some(a) => a }
       .getOrElse(sys.error("Generator failed to generate element"))
 

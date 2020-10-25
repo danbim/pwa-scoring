@@ -3,10 +3,10 @@ package com.bimschas.pwascoring.domain
 final case class ScoreSheets(scoreSheetsByRider: Map[RiderId, ScoreSheet]) {
 
   def score(riderId: RiderId, waveScore: WaveScore): ScoreSheets =
-      copy(scoreSheetsByRider = scoreSheetsByRider + (riderId -> (scoreSheetsByRider.getOrElse(riderId, ScoreSheet.empty) + waveScore)))
+    copy(scoreSheetsByRider = scoreSheetsByRider + (riderId -> (scoreSheetsByRider.getOrElse(riderId, ScoreSheet.empty) + waveScore)))
 
   def score(riderId: RiderId, jumpScore: JumpScore): ScoreSheets =
-      copy(scoreSheetsByRider = scoreSheetsByRider + (riderId -> (scoreSheetsByRider.getOrElse(riderId, ScoreSheet.empty) + jumpScore)))
+    copy(scoreSheetsByRider = scoreSheetsByRider + (riderId -> (scoreSheetsByRider.getOrElse(riderId, ScoreSheet.empty) + jumpScore)))
 }
 
 object ScoreSheets {

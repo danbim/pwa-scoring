@@ -9,7 +9,7 @@ final case class Contest(private val plannedHeats: Option[TreeSet[HeatId]]) {
 
   lazy val heats: Either[ContestNotPlanned.type, Set[HeatId]] =
     plannedHeats match {
-      case None => Left(ContestNotPlanned)
+      case None          => Left(ContestNotPlanned)
       case Some(heatIds) => Right(heatIds)
     }
 

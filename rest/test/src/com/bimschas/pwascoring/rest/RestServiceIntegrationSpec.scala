@@ -11,34 +11,46 @@ import akka.testkit.TestKitBase
 import com.bimschas.pwascoring.domain.DomainGenerators
 import com.bimschas.pwascoring.domain.HeatId
 import com.bimschas.pwascoring.service.ActorBasedContestService
-import org.scalacheck.Gen
 import org.scalatest.Matchers
 import org.scalatest.WordSpecLike
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.prop.PropertyChecks
+import spray.json.RootJsonFormat
+import scala.concurrent.duration.DurationLong
 
-class RestServiceIntegrationSpec extends WordSpecLike
-  with Matchers
-  with ScalatestRouteTest
-  with DomainGenerators
-  with PropertyChecks
-  with ContestJsonSupport
-  with ScalaFutures
-  with TestKitBase {
+class RestServiceIntegrationSpec
+    extends WordSpecLike
+    with Matchers
+    with ScalatestRouteTest
+    with DomainGenerators
+    with PropertyChecks
+    with ContestJsonSupport
+    with ScalaFutures
+    with TestKitBase {
 
-  private abstract class RunningRestService(heats: Set[HeatId]) {
+  private abstract class RunningRestService() {
     private val config = RestServiceConfig("localhost", 8888)
-    private val contestService = ActorBasedContestService(system)(system.scheduler, executor)
+    private val contestService = {
+      val service = ActorBasedContestService(system)
+      Thread.sleep(10000);
+      service
+    }
     protected val restService: RestService = RestService(config, contestService)
 
     protected def putHeatIds(heatIds: Set[HeatId]): RouteTestResult = {
-      Marshal(heatIds).to[RequestEntity].map { requestEntity =>
-        HttpRequest(
-          uri = "/contest/heats",
-          method = HttpMethods.PUT,
-          entity = requestEntity
-        ) ~> restService.route
-      }.futureValue
+      implicit val patienceConfig = PatienceConfig(timeout = 10.seconds)
+      case class TestContestSpec(heatIds: Set[HeatId])
+      implicit val testContestSpecFormat: RootJsonFormat[TestContestSpec] = jsonFormat1(TestContestSpec.apply)
+      Marshal(TestContestSpec(heatIds))
+        .to[RequestEntity]
+        .map { requestEntity =>
+          HttpRequest(
+            uri = "/contest/heats",
+            method = HttpMethods.PUT,
+            entity = requestEntity
+          ) ~> restService.route
+        }
+        .futureValue
     }
   }
 
@@ -46,7 +58,7 @@ class RestServiceIntegrationSpec extends WordSpecLike
     "PUT /contest/heats is called" must {
       "plan a contest" in {
         forAll(nonEmptySmallSetGen(heatIdGen)) { heatIds: Set[HeatId] =>
-          new RunningRestService(heatIds) {
+          new RunningRestService() {
             putHeatIds(heatIds) ~> check {
               handled shouldBe true
               status shouldBe OK

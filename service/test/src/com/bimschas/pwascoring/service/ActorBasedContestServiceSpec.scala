@@ -21,14 +21,12 @@ class ActorBasedContestServiceSpec extends SpecBase {
     "planning a contest" must {
       "plan a contest if it was not yet planned" in {
         withResources(TestContestService()) { contestService =>
-
           val heatIds = sample(nonEmptySmallSetGen(heatIdGen))
           contestService.planContest(heatIds).futureValue shouldBe Right(ContestPlannedEvent(heatIds))
         }
       }
       "refuse to plan contest if it was already planned" in {
         withResources(TestContestService()) { contestService =>
-
           val heatIds = sample(nonEmptySmallSetGen(heatIdGen))
           contestService.planContest(heatIds).futureValue shouldBe Right(ContestPlannedEvent(heatIds))
 

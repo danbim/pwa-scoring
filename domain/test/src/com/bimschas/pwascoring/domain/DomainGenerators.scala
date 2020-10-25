@@ -37,7 +37,8 @@ trait DomainGenerators extends BasicGenerators {
     } yield JumpScore(jumpType, points)
 
   val heatRulesGen: Gen[HeatRules] =
-    Gen.zip(Gen.chooseNum(0, 3), Gen.chooseNum(0, 5))
+    Gen
+      .zip(Gen.chooseNum(0, 3), Gen.chooseNum(0, 5))
       .suchThat { case (wavesCounting, jumpsCounting) => wavesCounting > 0 && jumpsCounting > 0 } // TODO "> 0" is wrong
       .map { case (wavesCounting, jumpsCounting) => HeatRules(wavesCounting, jumpsCounting) }
 }

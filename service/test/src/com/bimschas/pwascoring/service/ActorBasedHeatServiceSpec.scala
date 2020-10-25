@@ -14,7 +14,6 @@ class ActorBasedHeatServiceSpec extends SpecBase {
     "planning a heat" must {
       "plan a heat if it was not yet planned" in {
         withHeat { (heatId, heatService) =>
-
           val riderIds = sample(nonEmptySmallSetGen(riderIdGen))
           val heatContestants = HeatContestants(riderIds)
           val heatRules = sample(heatRulesGen)
@@ -31,7 +30,6 @@ class ActorBasedHeatServiceSpec extends SpecBase {
 
   private def withHeat(test: (HeatId, HeatService) => Assertion)(implicit patienceConfig: PatienceConfig): Assertion = {
     withResources(TestContestService()) { contestService =>
-
       val heatIds = sample(nonEmptySmallSetGen(heatIdGen))
       val contestPlannedEvent = contestService.planContest(heatIds).futureValue.right.value
       val heatId = contestPlannedEvent.heatIds.head

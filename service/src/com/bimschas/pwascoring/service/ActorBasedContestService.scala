@@ -32,8 +32,7 @@ object ActorBasedContestService {
     apply(system.toTyped)
 }
 
-case class ActorBasedContestService(system: ActorSystem[_], contestActor: ActorRef[ContestCommand])
-  extends ContestService {
+case class ActorBasedContestService(system: ActorSystem[_], contestActor: ActorRef[ContestCommand]) extends ContestService {
 
   private implicit val scheduler: Scheduler = system.scheduler
   private implicit val executionContext: ExecutionContext = system.executionContext
